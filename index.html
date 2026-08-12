@@ -698,6 +698,9 @@ function SchoolKitApp() {
   const [stage, setStage] = useState("edit");
   const [submittedRecord, setSubmittedRecord] = useState(null);
   const [editingBaseline, setEditingBaseline] = useState(null);
+  const [existingSubmissionInfo, setExistingSubmissionInfo] = useState(null);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [conflictData, setConflictData] = useState(null);
   const [lastDraftSave, setLastDraftSave] = useState(null);
   const [draftQueuedCount, setDraftQueuedCount] = useState(0);
   const [cloudStatus, setCloudStatus] = useState("connecting");
@@ -908,7 +911,7 @@ function SchoolKitApp() {
     if (autoFilled) setAutoFilled(false);
     if (hmLocked) setHmLocked(false);
   }
-  function loadSchoolByUdise(codeRaw) {
+  async function loadSchoolByUdise(codeRaw) {
     const code = (codeRaw ?? "").trim();
     const match = SCHOOL_LOOKUP[code];
     if (!match) {
@@ -938,6 +941,39 @@ function SchoolKitApp() {
     setHmLocked(!!(match.hm || match.mobile));
     setErrors((e) => ({ ...e, udiseCode: void 0, schoolName: void 0, submittedBy: match.hm ? void 0 : e.submittedBy, mobileNumber: match.mobile ? void 0 : e.mobileNumber }));
     setToast({ type: "success", msg: "Loaded " + match.name + "." });
+    
+    // Check if there's an existing submission for this school
+    try {
+      const key = "kit:" + code;
+      const existing = await sheetsDB.get(key);
+      if (existing) {
+        let existingRecord = null;
+        try {
+          existingRecord = JSON.parse(existing.value);
+        } catch {}
+        
+        if (existingRecord) {
+          setExistingSubmissionInfo({
+            previousData: existingRecord,
+            submittedAt: existingRecord.submittedAt,
+            submittedBy: existingRecord.submittedBy || "Unknown",
+            mobileNumber: existingRecord.mobileNumber || "—"
+          });
+          setEditingBaseline(existingRecord.submittedAt);
+        } else {
+          setExistingSubmissionInfo(null);
+          setEditingBaseline(null);
+        }
+      } else {
+        setExistingSubmissionInfo(null);
+        setEditingBaseline(null);
+      }
+    } catch (err) {
+      console.log("Could not check for existing submission:", err);
+      setExistingSubmissionInfo(null);
+      setEditingBaseline(null);
+    }
+    
     return true;
   }
   function validate() {
@@ -1523,7 +1559,7 @@ This removes it for everyone using this file and cannot be undone.`);
     const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
     XLSX.writeFile(wb, `mandal-stock-register-${stamp}.xlsx`);
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen chalk-texture font-body", style: { background: "#1B2E28", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("style", null, FONT_STYLE), /* @__PURE__ */ React.createElement("header", { className: "border-b", style: { borderColor: "rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 pt-10 pb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", style: { background: "#E8C468", color: "#1B2E28" } }, /* @__PURE__ */ React.createElement(Package, { size: 22, strokeWidth: 2.5 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "font-chalk text-xl sm:text-2xl leading-tight" }, "Sarvepalli Radha Krishnan Vidhyarathi Mithra Kit 2026-27"), /* @__PURE__ */ React.createElement("p", { className: "text-sm mt-1", style: { color: "#9FB8AC" } }, "School Kit Preparation \u2014 Mandal Level Data Collection"))))), /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } }, [{ key: "submit", label: "School entry", icon: PlusCircle }, { key: "dashboard", label: "Mandal dashboard", icon: ClipboardList }, { key: "acknowledgement", label: "Acknowledgement", icon: CheckCircle2 }, { key: "stockregister", label: "Mandal Stock Register", icon: ClipboardList }, { key: "shoesalloc", label: "Shoes Allocation", icon: Footprints }, { key: "bagsalloc", label: "Bags Allocation", icon: Package }, { key: "beltsalloc", label: "Belts Allocation", icon: Shirt }, { key: "dictalloc", label: "Dictionaries Allocation", icon: BookOpen }, { key: "notebooksalloc", label: "Note books Allocation", icon: BookOpen }, { key: "uniformsalloc", label: "Uniforms Allocation", icon: Shirt }, { key: "reports", label: "Reports", icon: ClipboardList }].map((t) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen chalk-texture font-body", style: { background: "#1B2E28", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("style", null, FONT_STYLE), /* @__PURE__ */ React.createElement("header", { className: "border-b", style: { borderColor: "rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 pt-10 pb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", style: { background: "#E8C468", color: "#1B2E28" } }, /* @__PURE__ */ React.createElement(Package, { size: 22, strokeWidth: 2.5 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "font-chalk text-xl sm:text-2xl leading-tight" }, "Sarvepalli Radha Krishnan Vidhyarathi Mithra Kit 2026-27"), /* @__PURE__ */ React.createElement("p", { className: "text-sm mt-1", style: { color: "#9FB8AC" } }, "School Kit Preparation \u2014 Mandal Level Data Collection"))))), /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } }, [{ key: "submit", label: "School entry", icon: PlusCircle }, { key: "dashboard", label: "Mandal dashboard", icon: ClipboardList }, { key: "acknowledgement", label: "Acknowledgement", icon: CheckCircle2 }, { key: "stockregister", label: "Mandal Stock Register", icon: ClipboardList }, { key: "allocations", label: "Item Allocations", icon: Package }, { key: "distribution", label: "Distribution", icon: Package }, { key: "reports", label: "Reports", icon: ClipboardList }].map((t) => {
     const Icon2 = t.icon, active = tab === t.key;
     return /* @__PURE__ */ React.createElement(
       "button",
@@ -1540,8 +1576,10 @@ This removes it for everyone using this file and cannot be undone.`);
     setForm(emptyForm());
     setAutoFilled(false);
     setEditingBaseline(null);
+    setExistingSubmissionInfo(null);
     setStage("edit");
-  }, className: "ml-auto" }, /* @__PURE__ */ React.createElement(X, { size: 14 }))), stage === "edit" && lastDraftSave && /* @__PURE__ */ React.createElement("div", { className: "mb-4 text-xs px-4 py-2 rounded-lg", style: { background: "rgba(143,191,159,0.12)", color: "#8FBF9F" } }, "\u2713 Draft saved ", lastDraftSave.toLocaleTimeString("en-IN"), draftQueuedCount > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "1rem", color: "#D6725C" } }, "\u2022 ", draftQueuedCount, " submission", draftQueuedCount === 1 ? "" : "s", " queued (will send when online)")), stage === "edit" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Section, { id: "info", title: "School details", icon: School, open: open.info, onToggle: toggle, forceOpen: true }, /* @__PURE__ */ React.createElement("div", { className: "grid sm:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs mb-1.5", style: { color: "#9FB8AC" } }, "UDISE Code"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  }, className: "ml-auto" }, /* @__PURE__ */ React.createElement(X, { size: 14 }))), 
+existingSubmissionInfo && stage === "edit" && /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-4 rounded-lg text-xs", style: { background: "rgba(214,114,92,0.15)", border: "1px solid rgba(214,114,92,0.35)", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("p", { className: "font-medium mb-2 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { style: { color: "#D6725C" } }, "⚠"), " Previous submission found"), /* @__PURE__ */ React.createElement("p", { className: "mb-2" }, "Last submitted by: ", existingSubmissionInfo.submittedBy, " on ", new Date(existingSubmissionInfo.submittedAt).toLocaleString("en-IN")), /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "Saving will replace the previous submission. If someone else has also edited this, you'll be asked to choose which version to keep.")), stage === "edit" && lastDraftSave && /* @__PURE__ */ React.createElement("div", { className: "mb-4 text-xs px-4 py-2 rounded-lg", style: { background: "rgba(143,191,159,0.12)", color: "#8FBF9F" } }, "\u2713 Draft saved ", lastDraftSave.toLocaleTimeString("en-IN"), draftQueuedCount > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "1rem", color: "#D6725C" } }, "\u2022 ", draftQueuedCount, " submission", draftQueuedCount === 1 ? "" : "s", " queued (will send when online)")), stage === "edit" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Section, { id: "info", title: "School details", icon: School, open: open.info, onToggle: toggle, forceOpen: true }, /* @__PURE__ */ React.createElement("div", { className: "grid sm:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs mb-1.5", style: { color: "#9FB8AC" } }, "UDISE Code"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       id: "udise-code-input",
@@ -1918,7 +1956,7 @@ This removes it for everyone using this file and cannot be undone.`);
     },
     /* @__PURE__ */ React.createElement(Download, { size: 16 }),
     " Download Acknowledgement PDF"
-  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "shoesalloc" && /* @__PURE__ */ React.createElement(ShoesAllocationModule, { records, mrcStock }), tab === "bagsalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Bags Allocation", description: "School-wise bag data collected from entries, and an auto-calculated guide to which schools still need which bag size \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "bags", records, mrcStock, allSlots: bagsAllocSlots(), hasGender: false }), tab === "beltsalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Belts Allocation", description: "School-wise belt data collected from entries, and an auto-calculated guide to which schools still need which belt category \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "belts", records, mrcStock, allSlots: beltsAllocSlots(), hasGender: false }), tab === "dictalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Dictionaries Allocation", description: "School-wise dictionary data collected from entries, and an auto-calculated guide to which schools still need which dictionary \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "dictionaries", records, mrcStock, allSlots: dictAllocSlots(), hasGender: false }), tab === "notebooksalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Note books Allocation", description: "School-wise note book data collected from entries, and an auto-calculated guide to which schools still need which note book type \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "note books", records, mrcStock, allSlots: notebooksAllocSlots(), hasGender: false }), tab === "uniformsalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Uniforms Allocation", description: "School-wise uniform data collected from entries, and an auto-calculated guide to which schools still need which class \u2014 gender-wise \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "uniforms", records, mrcStock, allSlots: uniformsAllocSlots(), hasGender: true }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), toast && /* @__PURE__ */ React.createElement(
+  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "allocations" && /* @__PURE__ */ React.createElement(CombinedAllocationsModule, { records, mrcStock }), tab === "distribution" && /* @__PURE__ */ React.createElement(DistributionModule, { records, mrcStock }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), toast && /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg",
@@ -3251,6 +3289,54 @@ function computeReportRows(catConfig, records, mrcStock) {
   });
   return rows;
 }
+function CombinedAllocationsModule({ records, mrcStock }) {
+  const [activeAlloc, setActiveAlloc] = useState("bags");
+  
+  const allocations = [
+    { id: "bags", label: "Bags Allocation", unitNoun: "bags", hasGender: false, slotsFn: bagsAllocSlots, description: "School-wise bag data collected from entries, and an auto-calculated guide to which schools still need which bag size — so you know who to give available stock to after it's received at the mandal." },
+    { id: "belts", label: "Belts Allocation", unitNoun: "belts", hasGender: false, slotsFn: beltsAllocSlots, description: "School-wise belt data collected from entries, and an auto-calculated guide to which schools still need which belt category — so you know who to give available stock to after it's received at the mandal." },
+    { id: "dictionaries", label: "Dictionaries Allocation", unitNoun: "dictionaries", hasGender: false, slotsFn: dictAllocSlots, description: "School-wise dictionary data collected from entries, and an auto-calculated guide to which schools still need which dictionary — so you know who to give available stock to after it's received at the mandal." },
+    { id: "notebooks", label: "Note books Allocation", unitNoun: "note books", hasGender: false, slotsFn: notebooksAllocSlots, description: "School-wise note book data collected from entries, and an auto-calculated guide to which schools still need which note book type — so you know who to give available stock to after it's received at the mandal." },
+    { id: "uniforms", label: "Uniforms Allocation", unitNoun: "uniforms", hasGender: true, slotsFn: uniformsAllocSlots, description: "School-wise uniform data collected from entries, and an auto-calculated guide to which schools still need which class — gender-wise — so you know who to give available stock to after it's received at the mandal." }
+  ];
+  
+  const currentAlloc = allocations.find(a => a.id === activeAlloc);
+  if (!currentAlloc) return null;
+  
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-4" },
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl p-5", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg mb-1", style: { color: "#F2EFE6" } }, "Item Allocations"),
+      /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-4", style: { color: "#9FB8AC" } }, "View allocation guides for each item category. Select an item type below to see school-wise allocation recommendations."),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        allocations.map(a => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: a.id,
+            onClick: () => setActiveAlloc(a.id),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: activeAlloc === a.id ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          a.label
+        ))
+      )
+    ),
+    /* @__PURE__ */ React.createElement(AllocationModule, {
+      title: currentAlloc.label,
+      description: currentAlloc.description,
+      unitNoun: currentAlloc.unitNoun,
+      records,
+      mrcStock,
+      allSlots: currentAlloc.slotsFn(),
+      hasGender: currentAlloc.hasGender
+    })
+  );
+}
 function ReportsModule({ records, mrcStock }) {
   const [catId, setCatId] = useState("bags");
   const [search, setSearch] = useState("");
@@ -3473,6 +3559,315 @@ function ReportsModule({ records, mrcStock }) {
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.need),
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2" }),
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.suggested)
+                )
+              )
+            )
+          )
+        )
+  );
+}
+const DISTRIBUTION_CATEGORIES = [
+  { id: "bags", label: "Bags", unitNoun: "bags", hasGender: false, buildSlots: bagsAllocSlots, enrollLabel: "Enrollment (by size)", sizeLabel: "Bag Size" },
+  { id: "belts", label: "Belts", unitNoun: "belts", hasGender: false, buildSlots: beltsAllocSlots, enrollLabel: "Enrollment (by category)", sizeLabel: "Belt Category" },
+  { id: "dict", label: "Dictionaries", unitNoun: "dictionaries", hasGender: false, buildSlots: dictAllocSlots, enrollLabel: "Enrollment", sizeLabel: "Dictionary" },
+  { id: "notebooks", label: "Note books", unitNoun: "note books", hasGender: false, buildSlots: notebooksAllocSlots, enrollLabel: "Quantity Required (enrollment \u00d7 norm)", sizeLabel: "Notebook Type" },
+  { id: "uniforms", label: "Uniforms", unitNoun: "uniforms", hasGender: true, buildSlots: uniformsAllocSlots, enrollLabel: "Enrollment", sizeLabel: "Class" }
+];
+const DISTRIBUTION_METRICS = [
+  { id: "enrollment", label: "Enrollment", accent: "#F2EFE6" },
+  { id: "received", label: "Received", accent: "#8FBF9F" },
+  { id: "need", label: "Still Needed", accent: "#D6725C" },
+  { id: "suggested", label: "Suggested Now", accent: "#E8C468" }
+];
+function computeDistributionPivot(catConfig, records, mrcStock, genderFilter) {
+  const allSlots = catConfig.buildSlots();
+  const slots = catConfig.hasGender && genderFilter !== "both" ? allSlots.filter((s) => s.gender === genderFilter) : allSlots;
+  const slotStock = {};
+  const allocMaps = {};
+  slots.forEach((slot) => {
+    const cell = mrcStock[slot.mrcCatId + ":" + slot.mrcKey] || emptyMrcCell();
+    const totalStock = n(cell.received);
+    let distributed = 0;
+    const items = [];
+    records.forEach((r) => {
+      const received = n(slot.getReceived(r));
+      distributed += received;
+      const indent = slot.getIndent(r);
+      const need = bagsRequirement(indent, received);
+      items.push({ id: r.id, need });
+    });
+    const stockAvailable = Math.max(totalStock - distributed, 0);
+    slotStock[slot.id] = stockAvailable;
+    let remaining = stockAvailable;
+    const allocMap = {};
+    [...items].filter((it) => it.need > 0).sort((a, b) => b.need - a.need).forEach((it) => {
+      const give = Math.min(it.need, remaining);
+      allocMap[it.id] = give;
+      remaining -= give;
+    });
+    allocMaps[slot.id] = allocMap;
+  });
+  const schoolRows = records.map((r) => {
+    let hasAny = false;
+    const cells = slots.map((slot) => {
+      const received = n(slot.getReceived(r));
+      const indent = slot.getIndent(r);
+      const need = bagsRequirement(indent, received);
+      const suggested = allocMaps[slot.id][r.id] || 0;
+      if (indent > 0 || received > 0) hasAny = true;
+      return { slotId: slot.id, indent, received, need, suggested };
+    });
+    return { id: r.id, schoolName: r.schoolName, udiseCode: r.udiseCode, cells, hasAny };
+  });
+  return { slots, slotStock, schoolRows };
+}
+function DistributionModule({ records, mrcStock }) {
+  const [catId, setCatId] = useState("bags");
+  const [genderFilter, setGenderFilter] = useState("both");
+  const [metric, setMetric] = useState("enrollment");
+  const [search, setSearch] = useState("");
+  const [onlyNeed, setOnlyNeed] = useState(false);
+
+  const catConfig = DISTRIBUTION_CATEGORIES.find((c) => c.id === catId);
+  const metricConfig = DISTRIBUTION_METRICS.find((m) => m.id === metric);
+  const pivot = useMemo(
+    () => computeDistributionPivot(catConfig, records, mrcStock, genderFilter),
+    [catConfig, records, mrcStock, genderFilter]
+  );
+  const { slots, slotStock, schoolRows } = pivot;
+
+  const q = search.trim().toLowerCase();
+  let filtered = schoolRows.filter((s) => s.hasAny);
+  if (q) filtered = filtered.filter((s) => s.schoolName.toLowerCase().includes(q) || String(s.udiseCode || "").toLowerCase().includes(q));
+  if (onlyNeed) filtered = filtered.filter((s) => s.cells.some((c) => c.need > 0));
+
+  const slotTotals = slots.map((slot, idx) => filtered.reduce((a, s) => a + n(s.cells[idx][metric === "enrollment" ? "indent" : metric]), 0));
+  const grandTotal = slotTotals.reduce((a, v) => a + v, 0);
+  const schoolsCovered = filtered.length;
+  const schoolsStillNeeding = filtered.filter((s) => s.cells.some((c) => c.need > 0)).length;
+
+  function buildSheetRows(cat) {
+    const catRows = computeReportRows(cat, records, mrcStock);
+    return catRows.map((r, i) => {
+      const row = { "S.No": i + 1, "School Name": r.schoolName, "UDISE Code": r.udiseCode || "" };
+      if (cat.hasGender) row["Gender"] = r.gender === "boys" ? "Boys" : "Girls";
+      row[cat.enrollLabel] = r.indent === null || r.indent === void 0 ? "" : r.indent;
+      row[cat.sizeLabel] = r.label;
+      row["Received"] = r.received;
+      row["Suggested to Distribute Now"] = r.suggested;
+      row["Still Needed"] = r.need;
+      row["Stock Available at MRC"] = r.stockAvailable;
+      return row;
+    });
+  }
+
+  function exportCategory(cat) {
+    if (typeof XLSX === "undefined") return;
+    const sheetRows = buildSheetRows(cat);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{ Note: "No data" }]);
+    XLSX.utils.book_append_sheet(wb, ws, cat.label.slice(0, 31));
+    const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    XLSX.writeFile(wb, cat.id + "-distribution-" + stamp + ".xlsx");
+  }
+
+  function exportAllDistribution() {
+    if (records.length === 0 || typeof XLSX === "undefined") return;
+    const wb = XLSX.utils.book_new();
+    DISTRIBUTION_CATEGORIES.forEach((cat) => {
+      const sheetRows = buildSheetRows(cat);
+      const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{ Note: "No data" }]);
+      XLSX.utils.book_append_sheet(wb, ws, cat.label.slice(0, 31));
+    });
+    const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    XLSX.writeFile(wb, "mandal-distribution-" + stamp + ".xlsx");
+  }
+
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-5" },
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl p-5", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg mb-1", style: { color: "#F2EFE6" } }, "Distribution"),
+      /* @__PURE__ */ React.createElement(
+        "p",
+        { className: "text-xs mb-4", style: { color: "#9FB8AC" } },
+        "School-wise, item-wise distribution sheet built from enrolled physical strength and the Mandal Stock Register \u2014 total stock at MRC. Sizes/categories run across the top as columns, one row per school."
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        DISTRIBUTION_CATEGORIES.map((c) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: c.id,
+            onClick: () => setCatId(c.id),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: catId === c.id ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          c.label
+        ))
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        DISTRIBUTION_METRICS.map((m) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: m.id,
+            onClick: () => setMetric(m.id),
+            className: "px-3 py-1 rounded-full text-xs",
+            style: metric === m.id
+              ? { background: "rgba(232,196,104,0.2)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.4)" }
+              : { background: "transparent", color: "#9FB8AC", border: "1px solid rgba(242,239,230,0.15)" }
+          },
+          "Show: " + m.label
+        ))
+      ),
+      catConfig.hasGender && /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        ["both", "boys", "girls"].map((g) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: g,
+            onClick: () => setGenderFilter(g),
+            className: "px-3 py-1 rounded-full text-xs",
+            style: genderFilter === g
+              ? { background: "rgba(232,196,104,0.2)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.4)" }
+              : { background: "transparent", color: "#9FB8AC", border: "1px solid rgba(242,239,230,0.15)" }
+          },
+          g === "both" ? "All" : g === "boys" ? "Boys" : "Girls"
+        ))
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools shown", value: schoolsCovered }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + catConfig.unitNoun, value: schoolsStillNeeding, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Total \u2014 " + metricConfig.label, value: grandTotal, accent: metricConfig.accent })
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap items-center" },
+        /* @__PURE__ */ React.createElement("input", {
+          type: "text",
+          placeholder: "Search school name or UDISE code...",
+          value: search,
+          onChange: (e) => setSearch(e.target.value),
+          className: "input flex-1 min-w-[180px]",
+          style: inputStyle(null, search.trim() !== "")
+        }),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setOnlyNeed((v) => !v),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+            style: onlyNeed ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "Only show schools still needing"
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => exportCategory(catConfig),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap",
+            style: { background: "rgba(143,191,159,0.15)", color: "#8FBF9F", border: "1px solid rgba(143,191,159,0.35)" }
+          },
+          /* @__PURE__ */ React.createElement(Download, { size: 13 }),
+          "Export " + catConfig.label + " (Excel)"
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: exportAllDistribution,
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap",
+            style: { background: "rgba(232,196,104,0.15)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.35)" }
+          },
+          /* @__PURE__ */ React.createElement(Download, { size: 13 }),
+          "Export all items (Excel)"
+        )
+      )
+    ),
+    filtered.length === 0
+      ? /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "rounded-2xl py-12 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+          /* @__PURE__ */ React.createElement(AlertCircle, { size: 20, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+          /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No matching schools for this item yet.")
+        )
+      : /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "rounded-2xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "overflow-x-auto" },
+            /* @__PURE__ */ React.createElement(
+              "table",
+              { className: "w-full text-xs font-mono" },
+              /* @__PURE__ */ React.createElement(
+                "thead",
+                null,
+                /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { style: { background: "rgba(242,239,230,0.06)" } },
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "S.No"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "School Name"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "UDISE"),
+                  slots.map((slot) => /* @__PURE__ */ React.createElement(
+                    "th",
+                    { key: slot.id, className: "text-right px-3 py-2 font-medium whitespace-nowrap", style: { color: "#9FB8AC" } },
+                    catConfig.hasGender && genderFilter === "both" ? (slot.gender === "boys" ? "B \u2014 " : "G \u2014 ") + slot.label : slot.label
+                  )),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#E8C468" } }, "Total")
+                )
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tr",
+                { style: { background: "rgba(232,196,104,0.05)" } },
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-1.5 font-sans", style: { color: "#9FB8AC" }, colSpan: 3 }, "Stock available at MRC now"),
+                slots.map((slot) => /* @__PURE__ */ React.createElement(
+                  "td",
+                  { key: slot.id, className: "px-3 py-1.5 text-right", style: { color: "#8FBF9F" } },
+                  slotStock[slot.id] || 0
+                )),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-1.5 text-right font-semibold", style: { color: "#8FBF9F" } }, slots.reduce((a, s) => a + (slotStock[s.id] || 0), 0))
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tbody",
+                null,
+                filtered.map((s, i) => /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { key: s.id, style: { borderTop: "1px solid rgba(242,239,230,0.06)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } },
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2", style: { color: "#9FB8AC" } }, i + 1),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, s.schoolName),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2", style: { color: "#9FB8AC" } }, s.udiseCode || "\u2014"),
+                  s.cells.map((c) => /* @__PURE__ */ React.createElement(
+                    "td",
+                    {
+                      key: c.slotId,
+                      className: "px-3 py-2 text-right" + (metric === "need" || metric === "suggested" ? " font-semibold" : ""),
+                      style: { color: metric === "need" ? (c.need > 0 ? "#D6725C" : "#9FB8AC") : metric === "suggested" ? (c.suggested > 0 ? "#E8C468" : "#9FB8AC") : "#F2EFE6" }
+                    },
+                    c[metric === "enrollment" ? "indent" : metric]
+                  )),
+                  /* @__PURE__ */ React.createElement(
+                    "td",
+                    { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } },
+                    s.cells.reduce((a, c) => a + n(c[metric === "enrollment" ? "indent" : metric]), 0)
+                  )
+                ))
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tfoot",
+                null,
+                /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { style: { borderTop: "1px solid rgba(242,239,230,0.15)", background: "rgba(232,196,104,0.06)" } },
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans font-semibold", style: { color: "#E8C468" }, colSpan: 3 }, "Total \u2014 " + metricConfig.label),
+                  slotTotals.map((v, idx) => /* @__PURE__ */ React.createElement("td", { key: slots[idx].id, className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, v)),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, grandTotal)
                 )
               )
             )
