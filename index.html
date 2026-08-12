@@ -356,17 +356,31 @@ function uid() {
   return "k_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 }
 const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyYKtH3Sgz2pxTC06mfak3ExRno11OyNdR6rvh2lNniW2RR499QbcT_ErOmQgc7ign-JQ/exec";
+async function fetchWithTimeout(url, options, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      throw new Error("Request timed out \u2014 the shared Google Sheet is taking too long to respond.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 function createSheetsDB(webAppUrl) {
   const url = webAppUrl.trim();
   async function post(body) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+    const res = await fetchWithTimeout(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
     if (!res.ok) throw new Error("Sheet request failed (HTTP " + res.status + ")");
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "Sheet request failed");
     return data;
   }
   async function fetchAll() {
-    const res = await fetch(url + (url.includes("?") ? "&" : "?") + "action=list");
+    const res = await fetchWithTimeout(url + (url.includes("?") ? "&" : "?") + "action=list");
     if (!res.ok) throw new Error("Sheet request failed (HTTP " + res.status + ")");
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "Sheet request failed");
@@ -417,7 +431,7 @@ const sheetsDB = createSheetsDB(SHEETS_WEB_APP_URL);
 function createMrcStockDB(webAppUrl) {
   const url = webAppUrl.trim();
   async function get() {
-    const res = await fetch(url + (url.includes("?") ? "&" : "?") + "action=getMrcStock");
+    const res = await fetchWithTimeout(url + (url.includes("?") ? "&" : "?") + "action=getMrcStock");
     if (!res.ok) throw new Error("MRC stock request failed (HTTP " + res.status + ")");
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "MRC stock request failed");
@@ -429,7 +443,7 @@ function createMrcStockDB(webAppUrl) {
     }
   }
   async function set(value) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "setMrcStock", value: JSON.stringify(value) }) });
+    const res = await fetchWithTimeout(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "setMrcStock", value: JSON.stringify(value) }) });
     if (!res.ok) throw new Error("MRC stock save failed (HTTP " + res.status + ")");
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "MRC stock save failed");
@@ -649,9 +663,9 @@ function generateAcknowledgementPdf(record) {
   const safeName = (record.schoolName || "school").replace(/[^a-z0-9]+/gi, "_");
   doc.save(`Acknowledgement_${safeName}_${record.udiseCode || ""}.pdf`);
 }
-function CloudStatusBadge({ status, error }) {
+function CloudStatusBadge({ status, error, slow }) {
   const dot = status === "connected" ? "#8FBF9F" : status === "error" ? "#D6725C" : "#E8C468";
-  const label = status === "connected" ? "Live \u2014 shared with everyone using this file" : status === "error" ? "Connection error" + (error ? ": " + error : "") : "Connecting...";
+  const label = status === "connected" ? "Live \u2014 shared with everyone using this file" : status === "error" ? "Connection error" + (error ? ": " + error : "") : slow ? "Still connecting \u2014 first load can take up to 20\u201330s. If this continues, check your internet connection." : "Connecting...";
   return /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl p-4 mb-6 flex flex-wrap items-center gap-3", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } }, /* @__PURE__ */ React.createElement("span", { style: { width: 9, height: 9, borderRadius: 999, background: dot, display: "inline-block" } }), /* @__PURE__ */ React.createElement("span", { className: "text-sm font-semibold", style: { color: "#F2EFE6" } }, "Cloud sync (Google Sheets)"), /* @__PURE__ */ React.createElement("span", { className: "text-xs", style: { color: "#9FB8AC" } }, label));
 }
 const DRAFT_STORAGE_KEY = "srkvm_draft_form_v1";
@@ -688,6 +702,7 @@ function SchoolKitApp() {
   const [draftQueuedCount, setDraftQueuedCount] = useState(0);
   const [cloudStatus, setCloudStatus] = useState("connecting");
   const [cloudError, setCloudError] = useState("");
+  const [slowConnect, setSlowConnect] = useState(false);
   const [mrcStock, setMrcStock] = useState({});
   const [mrcStockLoaded, setMrcStockLoaded] = useState(false);
   const [mrcStockSyncError, setMrcStockSyncError] = useState("");
@@ -749,6 +764,7 @@ function SchoolKitApp() {
         setRecords(recs);
         setLoading(false);
         setCloudStatus("connected");
+        setSlowConnect(false);
       },
       (err) => {
         setCloudStatus("error");
@@ -756,8 +772,10 @@ function SchoolKitApp() {
         setLoading(false);
       }
     );
+    const slowTimer = setTimeout(() => setSlowConnect(true), 8000);
     return () => {
       if (unsubRef.current) unsubRef.current();
+      clearTimeout(slowTimer);
     };
   }, []);
   useEffect(() => {
@@ -1505,7 +1523,7 @@ This removes it for everyone using this file and cannot be undone.`);
     const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
     XLSX.writeFile(wb, `mandal-stock-register-${stamp}.xlsx`);
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen chalk-texture font-body", style: { background: "#1B2E28", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("style", null, FONT_STYLE), /* @__PURE__ */ React.createElement("header", { className: "border-b", style: { borderColor: "rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 pt-10 pb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", style: { background: "#E8C468", color: "#1B2E28" } }, /* @__PURE__ */ React.createElement(Package, { size: 22, strokeWidth: 2.5 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "font-chalk text-xl sm:text-2xl leading-tight" }, "Sarvepalli Radha Krishnan Vidhyarathi Mithra Kit 2026-27"), /* @__PURE__ */ React.createElement("p", { className: "text-sm mt-1", style: { color: "#9FB8AC" } }, "School Kit Preparation \u2014 Mandal Level Data Collection"))))), /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } }, [{ key: "submit", label: "School entry", icon: PlusCircle }, { key: "dashboard", label: "Mandal dashboard", icon: ClipboardList }, { key: "acknowledgement", label: "Acknowledgement", icon: CheckCircle2 }, { key: "stockregister", label: "Mandal Stock Register", icon: ClipboardList }].map((t) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen chalk-texture font-body", style: { background: "#1B2E28", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("style", null, FONT_STYLE), /* @__PURE__ */ React.createElement("header", { className: "border-b", style: { borderColor: "rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 pt-10 pb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", style: { background: "#E8C468", color: "#1B2E28" } }, /* @__PURE__ */ React.createElement(Package, { size: 22, strokeWidth: 2.5 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "font-chalk text-xl sm:text-2xl leading-tight" }, "Sarvepalli Radha Krishnan Vidhyarathi Mithra Kit 2026-27"), /* @__PURE__ */ React.createElement("p", { className: "text-sm mt-1", style: { color: "#9FB8AC" } }, "School Kit Preparation \u2014 Mandal Level Data Collection"))))), /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } }, [{ key: "submit", label: "School entry", icon: PlusCircle }, { key: "dashboard", label: "Mandal dashboard", icon: ClipboardList }, { key: "acknowledgement", label: "Acknowledgement", icon: CheckCircle2 }, { key: "stockregister", label: "Mandal Stock Register", icon: ClipboardList }, { key: "shoesalloc", label: "Shoes Allocation", icon: Footprints }, { key: "bagsalloc", label: "Bags Allocation", icon: Package }, { key: "beltsalloc", label: "Belts Allocation", icon: Shirt }, { key: "dictalloc", label: "Dictionaries Allocation", icon: BookOpen }, { key: "notebooksalloc", label: "Note books Allocation", icon: BookOpen }, { key: "uniformsalloc", label: "Uniforms Allocation", icon: Shirt }, { key: "reports", label: "Reports", icon: ClipboardList }].map((t) => {
     const Icon2 = t.icon, active = tab === t.key;
     return /* @__PURE__ */ React.createElement(
       "button",
@@ -1820,7 +1838,7 @@ This removes it for everyone using this file and cannot be undone.`);
       style: { background: "#1B2E28", color: "#F2EFE6", border: "1px solid rgba(242,239,230,0.2)" }
     },
     "Go to Mandal dashboard"
-  )))), tab === "dashboard" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError }), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-3 mb-6" }, /* @__PURE__ */ React.createElement(
+  )))), tab === "dashboard" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-3 mb-6" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       placeholder: "Search school name or UDISE code...",
@@ -1871,7 +1889,7 @@ This removes it for everyone using this file and cannot be undone.`);
     " Export mandal data"
   ))), /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-6", style: { color: "#9FB8AC" } }, cloudStatus === "connected" ? 'Every school here is shared with anyone using this same file \u2014 updates from others appear within a few seconds. "Backup data (JSON)" is still worth doing occasionally as an extra safety copy.' : cloudStatus === "error" ? "Couldn't reach the shared Google Sheet right now \u2014 check your internet connection. Anything you save won't go through until this reconnects." : "Connecting to the shared Google Sheet..."), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8" }, /* @__PURE__ */ React.createElement(StatCard, { label: "Schools", value: overall.schools }), /* @__PURE__ */ React.createElement(StatCard, { label: "Students", value: overall.students, accent: "#8FBF9F" }), /* @__PURE__ */ React.createElement(StatCard, { label: "Bags", value: overall.bags }), /* @__PURE__ */ React.createElement(StatCard, { label: "Belts", value: overall.belts }), /* @__PURE__ */ React.createElement(StatCard, { label: "Dictionaries", value: overall.dict }), /* @__PURE__ */ React.createElement(StatCard, { label: "Note books", value: overall.notebooks }), /* @__PURE__ */ React.createElement(StatCard, { label: "Uniforms", value: overall.uniforms }), /* @__PURE__ */ React.createElement(StatCard, { label: "Shoes", value: overall.shoes, accent: "#E8C468" })), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 py-16 justify-center", style: { color: "#9FB8AC" } }, /* @__PURE__ */ React.createElement(Loader2, { size: 18, className: "animate-spin" }), " Loading...") : filteredRecords.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl py-16 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 22, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }), /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, records.length === 0 ? "No school records yet." : "No matches for your search.")) : /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm font-mono" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "rgba(242,239,230,0.06)" } }, ["School", "UDISE", "HM Name", "Mobile", "Students", "Bags", "Belts", "Dict.", "Note bks", "Uniform", "Shoes", ""].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, className: "text-left px-4 py-3 font-medium", style: { color: "#9FB8AC" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, filteredRecords.map((r, i) => {
     const st = strengthTotals(r.physicalStrength || r.strength);
-    return /* @__PURE__ */ React.createElement("tr", { key: r.id, style: { borderTop: "1px solid rgba(242,239,230,0.08)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } }, /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3 font-sans", style: { color: "#F2EFE6" } }, r.schoolName), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#9FB8AC" } }, r.udiseCode), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3 font-sans", style: { color: "#F2EFE6" } }, r.submittedBy || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#9FB8AC" } }, r.mobileNumber || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, st.total), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, bagsTotal(r.bags)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, beltsTotal(r.belts)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, dictTotal(r.dictionaries)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, notebooksGrandTotal(r.notebooks)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, uniformsGrandTotal(r.uniforms)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, shoesGrandTotal(r.shoes)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: () => editRecord(r), style: { color: "#E8C468" }, title: "Edit full entry" }, /* @__PURE__ */ React.createElement(Pencil, { size: 15 })), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("tr", { key: r.id, style: { borderTop: "1px solid rgba(242,239,230,0.08)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } }, /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3 font-sans", style: { color: "#F2EFE6" } }, r.schoolName), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#9FB8AC" } }, r.udiseCode), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3 font-sans", style: { color: "#F2EFE6" } }, r.submittedBy || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#9FB8AC" } }, r.mobileNumber || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, st.total), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, bagsTotal(r.bags)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, beltsTotal(r.belts)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, dictTotal(r.dictionaries)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, notebooksGrandTotal(r.notebooks)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, uniformsGrandTotal(r.uniforms)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, shoesGrandTotal(r.shoes)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: () => editRecord(r), style: { color: "#E8C468" }, title: "Edit full entry" }, /* @__PURE__ */ React.createElement(Pencil, { size: 15 })), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => deleteRecord(r),
@@ -1900,7 +1918,7 @@ This removes it for everyone using this file and cannot be undone.`);
     },
     /* @__PURE__ */ React.createElement(Download, { size: 16 }),
     " Download Acknowledgement PDF"
-  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), toast && /* @__PURE__ */ React.createElement(
+  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "shoesalloc" && /* @__PURE__ */ React.createElement(ShoesAllocationModule, { records, mrcStock }), tab === "bagsalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Bags Allocation", description: "School-wise bag data collected from entries, and an auto-calculated guide to which schools still need which bag size \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "bags", records, mrcStock, allSlots: bagsAllocSlots(), hasGender: false }), tab === "beltsalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Belts Allocation", description: "School-wise belt data collected from entries, and an auto-calculated guide to which schools still need which belt category \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "belts", records, mrcStock, allSlots: beltsAllocSlots(), hasGender: false }), tab === "dictalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Dictionaries Allocation", description: "School-wise dictionary data collected from entries, and an auto-calculated guide to which schools still need which dictionary \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "dictionaries", records, mrcStock, allSlots: dictAllocSlots(), hasGender: false }), tab === "notebooksalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Note books Allocation", description: "School-wise note book data collected from entries, and an auto-calculated guide to which schools still need which note book type \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "note books", records, mrcStock, allSlots: notebooksAllocSlots(), hasGender: false }), tab === "uniformsalloc" && /* @__PURE__ */ React.createElement(AllocationModule, { title: "Uniforms Allocation", description: "School-wise uniform data collected from entries, and an auto-calculated guide to which schools still need which class \u2014 gender-wise \u2014 so you know who to give available stock to after it's received at the mandal.", unitNoun: "uniforms", records, mrcStock, allSlots: uniformsAllocSlots(), hasGender: true }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), toast && /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg",
@@ -2340,6 +2358,1127 @@ function inputStyle(error, filled) {
     fontSize: 14,
     outline: "none"
   };
+}
+function ShoesAllocationModule({ records, mrcStock }) {
+  const [view, setView] = useState("bySize");
+  const [genderFilter, setGenderFilter] = useState("both");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState({});
+
+  const toggleExpand = (id) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
+
+  const genders = genderFilter === "both" ? ["boys", "girls"] : [genderFilter];
+
+  const sizeRows = [];
+  const stockMap = {};
+  genders.forEach((gender) => {
+    const catId = gender === "boys" ? "shoeb" : "shoeg";
+    SHOE_SIZES.forEach((s) => {
+      const key = "s" + s;
+      const cell = mrcStock[catId + ":" + key] || emptyMrcCell();
+      const totalStock = n(cell.received);
+      let distributed = 0;
+      const needList = [];
+      const surplusList = [];
+      records.forEach((r) => {
+        const row = r.shoes[gender][key];
+        distributed += n(row.received);
+        const need = effectiveShoeRequirement(row);
+        if (need > 0) {
+          needList.push({ schoolName: r.schoolName, udiseCode: r.udiseCode, need, received: n(row.received) });
+        }
+        const mismatch = n(row.mismatch);
+        if (mismatch > 0) {
+          surplusList.push({ schoolName: r.schoolName, udiseCode: r.udiseCode, surplus: mismatch });
+        }
+      });
+      const totalNeed = needList.reduce((a, x) => a + x.need, 0);
+      const totalSchoolSurplus = surplusList.reduce((a, x) => a + x.surplus, 0);
+      const stockAvailable = Math.max(totalStock - distributed, 0);
+      stockMap[gender + "_" + key] = stockAvailable;
+      needList.sort((a, b) => b.need - a.need);
+      surplusList.sort((a, b) => b.surplus - a.surplus);
+      sizeRows.push({
+        id: gender + "_" + key,
+        gender,
+        size: s,
+        surplus: stockAvailable,
+        totalStock,
+        distributed,
+        totalNeed,
+        needList,
+        totalSchoolSurplus,
+        surplusList
+      });
+    });
+  });
+
+  const q = search.trim().toLowerCase();
+  const filteredSizeRows = q
+    ? sizeRows.filter(
+        (row) =>
+          row.needList.some((x) => x.schoolName.toLowerCase().includes(q)) ||
+          row.surplusList.some((x) => x.schoolName.toLowerCase().includes(q))
+      )
+    : sizeRows;
+
+  const schoolRows = records
+    .map((r) => {
+      const items = [];
+      genders.forEach((gender) => {
+        SHOE_SIZES.forEach((s) => {
+          const key = "s" + s;
+          const row = r.shoes[gender][key];
+          const received = n(row.received);
+          const need = effectiveShoeRequirement(row);
+          const surplus = n(row.mismatch);
+          if (need > 0 || surplus > 0 || received > 0) {
+            items.push({ gender, size: s, received, need, surplus, stockAvailable: stockMap[gender + "_" + key] || 0 });
+          }
+        });
+      });
+      return {
+        id: r.id,
+        schoolName: r.schoolName,
+        udiseCode: r.udiseCode,
+        items,
+        totalReceived: items.reduce((a, x) => a + x.received, 0),
+        totalNeed: items.reduce((a, x) => a + x.need, 0),
+        totalSurplus: items.reduce((a, x) => a + x.surplus, 0)
+      };
+    })
+    .filter((s) => s.totalNeed > 0 || s.totalSurplus > 0 || s.totalReceived > 0)
+    .sort((a, b) => b.totalNeed - a.totalNeed || b.totalReceived - a.totalReceived);
+  const schoolsStillNeeding = schoolRows.filter((s) => s.totalNeed > 0).length;
+
+  const filteredSchoolRows = q
+    ? schoolRows.filter((s) => s.schoolName.toLowerCase().includes(q))
+    : schoolRows;
+
+  const grandTotalNeed = sizeRows.reduce((a, r) => a + r.totalNeed, 0);
+  const grandTotalSchoolSurplus = sizeRows.reduce((a, r) => a + r.totalSchoolSurplus, 0);
+
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-5" },
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl p-5", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg mb-1", style: { color: "#F2EFE6" } }, "Shoes Allocation"),
+      /* @__PURE__ */ React.createElement(
+        "p",
+        { className: "text-xs mb-4", style: { color: "#9FB8AC" } },
+        "School-wise shoe data collected from entries, and an auto-calculated guide to which schools still need which sizes \u2014 gender-wise \u2014 so you know who to give available stock to after it's received at the mandal."
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing shoes", value: schoolsStillNeeding }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Total pairs still needed", value: grandTotalNeed, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools (mismatch)", value: grandTotalSchoolSurplus, accent: "#8FBF9F" })
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setView("bySize"),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: view === "bySize" ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "By size \u2014 who needs it"
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setView("bySchool"),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: view === "bySchool" ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "By school"
+        )
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        ["both", "boys", "girls"].map((g) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: g,
+            onClick: () => setGenderFilter(g),
+            className: "px-3 py-1 rounded-full text-xs",
+            style: genderFilter === g
+              ? { background: "rgba(232,196,104,0.2)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.4)" }
+              : { background: "transparent", color: "#9FB8AC", border: "1px solid rgba(242,239,230,0.15)" }
+          },
+          g === "both" ? "All" : g === "boys" ? "Boys" : "Girls"
+        ))
+      ),
+      /* @__PURE__ */ React.createElement("input", {
+        type: "text",
+        placeholder: "Search school name...",
+        value: search,
+        onChange: (e) => setSearch(e.target.value),
+        className: "input",
+        style: inputStyle(null, search.trim() !== "")
+      })
+    ),
+    view === "bySize"
+      ? /* @__PURE__ */ React.createElement(ShoesBySizeView, { rows: filteredSizeRows, expanded, toggleExpand })
+      : /* @__PURE__ */ React.createElement(ShoesBySchoolView, { rows: filteredSchoolRows, expanded, toggleExpand })
+  );
+}
+function ShoesBySizeView({ rows, expanded, toggleExpand }) {
+  if (rows.length === 0) {
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl py-12 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+      /* @__PURE__ */ React.createElement(AlertCircle, { size: 20, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+      /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No outstanding shoe requirements right now.")
+    );
+  }
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-3" },
+    rows.map((row) => {
+      const isOpen = !!expanded[row.id];
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        { key: row.id, className: "rounded-xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => toggleExpand(row.id),
+            className: "w-full flex items-center justify-between px-4 py-3",
+            style: { background: "rgba(242,239,230,0.04)" }
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "flex items-center gap-2" },
+            isOpen
+              ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 16, style: { color: "#9FB8AC" } })
+              : /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, style: { color: "#9FB8AC" } }),
+            /* @__PURE__ */ React.createElement(
+              "span",
+              { className: "font-sans font-semibold text-sm", style: { color: "#F2EFE6" } },
+              (row.gender === "boys" ? "Boys" : "Girls") + " \u2014 " + row.size + " cm"
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "flex items-center gap-3 text-xs" },
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#9FB8AC" } }, "Received so far: " + row.distributed),
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "Stock available: " + row.surplus),
+            row.totalSchoolSurplus > 0 && /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "From schools: " + row.totalSchoolSurplus),
+            /* @__PURE__ */ React.createElement("span", { className: "font-semibold", style: { color: "#D6725C" } }, "Needed: " + row.totalNeed)
+          )
+        ),
+        isOpen && /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "px-4 py-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
+          row.needList.length > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+            "p",
+            { className: "text-xs mb-2", style: { color: "#9FB8AC" } },
+            "Give available stock to these schools first \u2014 sorted by highest need:"
+          ),
+          /* @__PURE__ */ React.createElement(
+            "table",
+            { className: "w-full text-xs" },
+            /* @__PURE__ */ React.createElement(
+              "thead",
+              null,
+              /* @__PURE__ */ React.createElement(
+                "tr",
+                null,
+                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "School"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Received"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Still needed")
+              )
+            ),
+            /* @__PURE__ */ React.createElement(
+              "tbody",
+              null,
+              row.needList.map((s, i) => /* @__PURE__ */ React.createElement(
+                "tr",
+                { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, s.schoolName),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, s.received),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, s.need)
+              ))
+            )
+          )) : /* @__PURE__ */ React.createElement(
+            "p",
+            { className: "text-xs", style: { color: "#9FB8AC" } },
+            "No schools currently need this size."
+          ),
+          row.surplusList.length > 0 && /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "mt-4 pt-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
+            /* @__PURE__ */ React.createElement(
+              "p",
+              { className: "text-xs mb-2", style: { color: "#9FB8AC" } },
+              "Surplus from schools \u2014 mismatched pairs (wrong size/damaged) reported by these schools that can be collected back and redistributed:"
+            ),
+            /* @__PURE__ */ React.createElement(
+              "table",
+              { className: "w-full text-xs" },
+              /* @__PURE__ */ React.createElement(
+                "thead",
+                null,
+                /* @__PURE__ */ React.createElement(
+                  "tr",
+                  null,
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "School"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Surplus (mismatch)")
+                )
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tbody",
+                null,
+                row.surplusList.map((s, i) => /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                  /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, s.schoolName),
+                  /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#8FBF9F" } }, s.surplus)
+                ))
+              )
+            )
+          )
+        )
+      );
+    })
+  );
+}
+function ShoesBySchoolView({ rows, expanded, toggleExpand }) {
+  if (rows.length === 0) {
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl py-12 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+      /* @__PURE__ */ React.createElement(AlertCircle, { size: 20, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+      /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No shoe data recorded for any school yet.")
+    );
+  }
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-3" },
+    rows.map((row) => {
+      const eid = "school_" + row.id;
+      const isOpen = !!expanded[eid];
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        { key: row.id, className: "rounded-xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => toggleExpand(eid),
+            className: "w-full flex items-center justify-between px-4 py-3",
+            style: { background: "rgba(242,239,230,0.04)" }
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "flex items-center gap-2" },
+            isOpen
+              ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 16, style: { color: "#9FB8AC" } })
+              : /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, style: { color: "#9FB8AC" } }),
+            /* @__PURE__ */ React.createElement(
+              "div",
+              { className: "text-left" },
+              /* @__PURE__ */ React.createElement("p", { className: "font-sans font-semibold text-sm", style: { color: "#F2EFE6" } }, row.schoolName),
+              /* @__PURE__ */ React.createElement("p", { className: "text-xs", style: { color: "#9FB8AC" } }, row.udiseCode || "\u2014")
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "span",
+            { className: "text-xs font-semibold", style: { color: row.totalNeed > 0 ? "#D6725C" : "#8FBF9F" } },
+            row.totalNeed > 0 ? row.totalNeed + " pairs needed" : "Received " + row.totalReceived + ", no outstanding need"
+          )
+        ),
+        isOpen && /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "px-4 py-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
+          /* @__PURE__ */ React.createElement(
+            "table",
+            { className: "w-full text-xs" },
+            /* @__PURE__ */ React.createElement(
+              "thead",
+              null,
+              /* @__PURE__ */ React.createElement(
+                "tr",
+                null,
+                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Gender"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Size"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Received"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Stock available"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Surplus (mismatch)"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Still needed")
+              )
+            ),
+            /* @__PURE__ */ React.createElement(
+              "tbody",
+              null,
+              row.items.map((it, i) => /* @__PURE__ */ React.createElement(
+                "tr",
+                { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.gender === "boys" ? "Boys" : "Girls"),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.size + " cm"),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, it.received),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.stockAvailable > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.stockAvailable),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.surplus),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, it.need)
+              ))
+            )
+          )
+        )
+      );
+    })
+  );
+}
+function bagsAllocSlots() {
+  return BAG_SIZES.map((s) => ({
+    id: s.key,
+    label: s.label,
+    mrcCatId: "bags",
+    mrcKey: s.key,
+    getReceived: (r) => n(r.bags[s.key].received),
+    getIndent: (r) => bagsIndent(r.physicalStrength || r.strength, s)
+  }));
+}
+function beltsAllocSlots() {
+  return BELT_CATEGORIES.map((c) => ({
+    id: c.key,
+    label: c.label,
+    mrcCatId: "belts",
+    mrcKey: c.key,
+    getReceived: (r) => n(r.belts[c.key].received),
+    getIndent: (r) => beltsIndent(r.physicalStrength || r.strength, c)
+  }));
+}
+function dictAllocSlots() {
+  return DICT_ITEMS.map((it) => ({
+    id: it.key,
+    label: it.label,
+    mrcCatId: "dict",
+    mrcKey: it.key,
+    getReceived: (r) => n(r.dictionaries[it.key].received),
+    getIndent: (r) => dictIndent(r.physicalStrength || r.strength, it)
+  }));
+}
+function notebooksAllocSlots() {
+  return NB_TYPES.map((t) => ({
+    id: t.key,
+    label: t.label,
+    mrcCatId: "nb",
+    mrcKey: t.key,
+    getReceived: (r) => notebookTypeReceivedTotal(r.notebooks[t.key]),
+    getIndent: (r) => notebookTypeIndentTotal(r.physicalStrength || r.strength, t.key)
+  }));
+}
+function uniformsAllocSlots() {
+  const slots = [];
+  CLASSES.forEach((c) => {
+    slots.push({
+      id: "boys_c" + c,
+      label: "Class " + c,
+      gender: "boys",
+      mrcCatId: "unifb",
+      mrcKey: "c" + c,
+      getReceived: (r) => n(r.uniforms.boys["c" + c].received),
+      getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "boy", c)
+    });
+    slots.push({
+      id: "girls_c" + c,
+      label: "Class " + c,
+      gender: "girls",
+      mrcCatId: "unifg",
+      mrcKey: "c" + c,
+      getReceived: (r) => n(r.uniforms.girls["c" + c].received),
+      getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "girl", c)
+    });
+  });
+  return slots;
+}
+function AllocationModule({ title, description, unitNoun, records, mrcStock, allSlots, hasGender }) {
+  const [view, setView] = useState("bySize");
+  const [genderFilter, setGenderFilter] = useState("both");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState({});
+  const toggleExpand = (id) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
+
+  const slots = hasGender && genderFilter !== "both" ? allSlots.filter((s) => s.gender === genderFilter) : allSlots;
+
+  const sizeRows = [];
+  const stockMap = {};
+  slots.forEach((slot) => {
+    const cell = mrcStock[slot.mrcCatId + ":" + slot.mrcKey] || emptyMrcCell();
+    const totalStock = n(cell.received);
+    let distributed = 0;
+    const needList = [];
+    const surplusList = [];
+    records.forEach((r) => {
+      const received = n(slot.getReceived(r));
+      distributed += received;
+      const indent = slot.getIndent(r);
+      const need = bagsRequirement(indent, received);
+      if (need > 0) needList.push({ schoolName: r.schoolName, udiseCode: r.udiseCode, need, received });
+      const surplus = bagsSurplus(indent, received);
+      if (surplus > 0) surplusList.push({ schoolName: r.schoolName, udiseCode: r.udiseCode, surplus });
+    });
+    const totalNeed = needList.reduce((a, x) => a + x.need, 0);
+    const totalSchoolSurplus = surplusList.reduce((a, x) => a + x.surplus, 0);
+    const stockAvailable = Math.max(totalStock - distributed, 0);
+    stockMap[slot.id] = stockAvailable;
+    needList.sort((a, b) => b.need - a.need);
+    surplusList.sort((a, b) => b.surplus - a.surplus);
+    sizeRows.push({
+      id: slot.id,
+      label: slot.label,
+      gender: slot.gender,
+      surplus: stockAvailable,
+      totalStock,
+      distributed,
+      totalNeed,
+      needList,
+      totalSchoolSurplus,
+      surplusList
+    });
+  });
+
+  const q = search.trim().toLowerCase();
+  const filteredSizeRows = q
+    ? sizeRows.filter(
+        (row) =>
+          row.needList.some((x) => x.schoolName.toLowerCase().includes(q)) ||
+          row.surplusList.some((x) => x.schoolName.toLowerCase().includes(q))
+      )
+    : sizeRows;
+
+  const schoolRows = records
+    .map((r) => {
+      const items = [];
+      slots.forEach((slot) => {
+        const received = n(slot.getReceived(r));
+        const indent = slot.getIndent(r);
+        const need = bagsRequirement(indent, received);
+        const surplus = bagsSurplus(indent, received);
+        if (need > 0 || surplus > 0 || received > 0) {
+          items.push({ label: slot.label, gender: slot.gender, received, need, surplus, stockAvailable: stockMap[slot.id] || 0 });
+        }
+      });
+      return {
+        id: r.id,
+        schoolName: r.schoolName,
+        udiseCode: r.udiseCode,
+        items,
+        totalReceived: items.reduce((a, x) => a + x.received, 0),
+        totalNeed: items.reduce((a, x) => a + x.need, 0),
+        totalSurplus: items.reduce((a, x) => a + x.surplus, 0)
+      };
+    })
+    .filter((s) => s.totalNeed > 0 || s.totalSurplus > 0 || s.totalReceived > 0)
+    .sort((a, b) => b.totalNeed - a.totalNeed || b.totalReceived - a.totalReceived);
+  const schoolsStillNeeding = schoolRows.filter((s) => s.totalNeed > 0).length;
+
+  const filteredSchoolRows = q
+    ? schoolRows.filter((s) => s.schoolName.toLowerCase().includes(q))
+    : schoolRows;
+
+  const grandTotalNeed = sizeRows.reduce((a, r) => a + r.totalNeed, 0);
+  const grandTotalSchoolSurplus = sizeRows.reduce((a, r) => a + r.totalSchoolSurplus, 0);
+
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-5" },
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl p-5", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg mb-1", style: { color: "#F2EFE6" } }, title),
+      /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-4", style: { color: "#9FB8AC" } }, description),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + unitNoun, value: schoolsStillNeeding }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Total " + unitNoun + " still needed", value: grandTotalNeed, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools", value: grandTotalSchoolSurplus, accent: "#8FBF9F" })
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setView("bySize"),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: view === "bySize" ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "By item \u2014 who needs it"
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setView("bySchool"),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: view === "bySchool" ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "By school"
+        )
+      ),
+      hasGender && /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        ["both", "boys", "girls"].map((g) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: g,
+            onClick: () => setGenderFilter(g),
+            className: "px-3 py-1 rounded-full text-xs",
+            style: genderFilter === g
+              ? { background: "rgba(232,196,104,0.2)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.4)" }
+              : { background: "transparent", color: "#9FB8AC", border: "1px solid rgba(242,239,230,0.15)" }
+          },
+          g === "both" ? "All" : g === "boys" ? "Boys" : "Girls"
+        ))
+      ),
+      /* @__PURE__ */ React.createElement("input", {
+        type: "text",
+        placeholder: "Search school name...",
+        value: search,
+        onChange: (e) => setSearch(e.target.value),
+        className: "input",
+        style: inputStyle(null, search.trim() !== "")
+      })
+    ),
+    view === "bySize"
+      ? /* @__PURE__ */ React.createElement(AllocationByItemView, { rows: filteredSizeRows, expanded, toggleExpand, unitNoun, hasGender })
+      : /* @__PURE__ */ React.createElement(AllocationBySchoolView, { rows: filteredSchoolRows, expanded, toggleExpand, hasGender })
+  );
+}
+function AllocationByItemView({ rows, expanded, toggleExpand, unitNoun, hasGender }) {
+  if (rows.length === 0) {
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl py-12 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+      /* @__PURE__ */ React.createElement(AlertCircle, { size: 20, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+      /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No outstanding " + unitNoun + " requirements right now.")
+    );
+  }
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-3" },
+    rows.map((row) => {
+      const isOpen = !!expanded[row.id];
+      const heading = hasGender ? (row.gender === "boys" ? "Boys" : "Girls") + " \u2014 " + row.label : row.label;
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        { key: row.id, className: "rounded-xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => toggleExpand(row.id),
+            className: "w-full flex items-center justify-between px-4 py-3",
+            style: { background: "rgba(242,239,230,0.04)" }
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "flex items-center gap-2" },
+            isOpen
+              ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 16, style: { color: "#9FB8AC" } })
+              : /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, style: { color: "#9FB8AC" } }),
+            /* @__PURE__ */ React.createElement("span", { className: "font-sans font-semibold text-sm", style: { color: "#F2EFE6" } }, heading)
+          ),
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "flex items-center gap-3 text-xs" },
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#9FB8AC" } }, "Received so far: " + row.distributed),
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "Stock available: " + row.surplus),
+            row.totalSchoolSurplus > 0 && /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "From schools: " + row.totalSchoolSurplus),
+            /* @__PURE__ */ React.createElement("span", { className: "font-semibold", style: { color: "#D6725C" } }, "Needed: " + row.totalNeed)
+          )
+        ),
+        isOpen && /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "px-4 py-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
+          row.needList.length > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+            "p",
+            { className: "text-xs mb-2", style: { color: "#9FB8AC" } },
+            "Give available stock to these schools first \u2014 sorted by highest need:"
+          ),
+          /* @__PURE__ */ React.createElement(
+            "table",
+            { className: "w-full text-xs" },
+            /* @__PURE__ */ React.createElement(
+              "thead",
+              null,
+              /* @__PURE__ */ React.createElement(
+                "tr",
+                null,
+                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "School"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Received"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Still needed")
+              )
+            ),
+            /* @__PURE__ */ React.createElement(
+              "tbody",
+              null,
+              row.needList.map((s, i) => /* @__PURE__ */ React.createElement(
+                "tr",
+                { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, s.schoolName),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, s.received),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, s.need)
+              ))
+            )
+          )) : /* @__PURE__ */ React.createElement(
+            "p",
+            { className: "text-xs", style: { color: "#9FB8AC" } },
+            "No schools currently need this item."
+          ),
+          row.surplusList.length > 0 && /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "mt-4 pt-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
+            /* @__PURE__ */ React.createElement(
+              "p",
+              { className: "text-xs mb-2", style: { color: "#9FB8AC" } },
+              "Surplus from schools \u2014 received more than their indent, and can be collected back and redistributed:"
+            ),
+            /* @__PURE__ */ React.createElement(
+              "table",
+              { className: "w-full text-xs" },
+              /* @__PURE__ */ React.createElement(
+                "thead",
+                null,
+                /* @__PURE__ */ React.createElement(
+                  "tr",
+                  null,
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "School"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Surplus")
+                )
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tbody",
+                null,
+                row.surplusList.map((s, i) => /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                  /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, s.schoolName),
+                  /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#8FBF9F" } }, s.surplus)
+                ))
+              )
+            )
+          )
+        )
+      );
+    })
+  );
+}
+function AllocationBySchoolView({ rows, expanded, toggleExpand, hasGender }) {
+  if (rows.length === 0) {
+    return /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl py-12 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+      /* @__PURE__ */ React.createElement(AlertCircle, { size: 20, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+      /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No data recorded for any school yet.")
+    );
+  }
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-3" },
+    rows.map((row) => {
+      const eid = "alloc_school_" + row.id;
+      const isOpen = !!expanded[eid];
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        { key: row.id, className: "rounded-xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => toggleExpand(eid),
+            className: "w-full flex items-center justify-between px-4 py-3",
+            style: { background: "rgba(242,239,230,0.04)" }
+          },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "flex items-center gap-2" },
+            isOpen
+              ? /* @__PURE__ */ React.createElement(ChevronDown, { size: 16, style: { color: "#9FB8AC" } })
+              : /* @__PURE__ */ React.createElement(ChevronRight, { size: 16, style: { color: "#9FB8AC" } }),
+            /* @__PURE__ */ React.createElement(
+              "div",
+              { className: "text-left" },
+              /* @__PURE__ */ React.createElement("p", { className: "font-sans font-semibold text-sm", style: { color: "#F2EFE6" } }, row.schoolName),
+              /* @__PURE__ */ React.createElement("p", { className: "text-xs", style: { color: "#9FB8AC" } }, row.udiseCode || "\u2014")
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "span",
+            { className: "text-xs font-semibold", style: { color: row.totalNeed > 0 ? "#D6725C" : "#8FBF9F" } },
+            row.totalNeed > 0 ? row.totalNeed + " still needed" : "Received " + row.totalReceived + ", no outstanding need"
+          )
+        ),
+        isOpen && /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "px-4 py-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
+          /* @__PURE__ */ React.createElement(
+            "table",
+            { className: "w-full text-xs" },
+            /* @__PURE__ */ React.createElement(
+              "thead",
+              null,
+              /* @__PURE__ */ React.createElement(
+                "tr",
+                null,
+                hasGender && /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Gender"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Item"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Received"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Stock available"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Surplus"),
+                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Still needed")
+              )
+            ),
+            /* @__PURE__ */ React.createElement(
+              "tbody",
+              null,
+              row.items.map((it, i) => /* @__PURE__ */ React.createElement(
+                "tr",
+                { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                hasGender && /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.gender === "boys" ? "Boys" : "Girls"),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.label),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, it.received),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.stockAvailable > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.stockAvailable),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.surplus),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, it.need)
+              ))
+            )
+          )
+        )
+      );
+    })
+  );
+}
+const REPORT_CATEGORIES = [
+  { id: "bags", label: "Bags", unitNoun: "bags", hasGender: false, buildSlots: bagsAllocSlots },
+  { id: "belts", label: "Belts", unitNoun: "belts", hasGender: false, buildSlots: beltsAllocSlots },
+  { id: "dict", label: "Dictionaries", unitNoun: "dictionaries", hasGender: false, buildSlots: dictAllocSlots },
+  { id: "notebooks", label: "Note books", unitNoun: "note books", hasGender: false, buildSlots: notebooksAllocSlots },
+  { id: "uniforms", label: "Uniforms", unitNoun: "uniforms", hasGender: true, buildSlots: uniformsAllocSlots },
+  { id: "shoes", label: "Shoes", unitNoun: "shoes", hasGender: true, buildSlots: null }
+];
+function computeReportRows(catConfig, records, mrcStock) {
+  const rows = [];
+  if (catConfig.id === "shoes") {
+    ["boys", "girls"].forEach((gender) => {
+      const mrcCatId = gender === "boys" ? "shoeb" : "shoeg";
+      SHOE_SIZES.forEach((s) => {
+        const key = "s" + s;
+        const cell = mrcStock[mrcCatId + ":" + key] || emptyMrcCell();
+        const totalStock = n(cell.received);
+        let distributed = 0;
+        const items = [];
+        records.forEach((r) => {
+          const row = r.shoes[gender][key];
+          const received = n(row.received);
+          distributed += received;
+          const need = effectiveShoeRequirement(row);
+          const surplus = n(row.mismatch);
+          items.push({ record: r, received, need, surplus });
+        });
+        const stockAvailable = Math.max(totalStock - distributed, 0);
+        let remaining = stockAvailable;
+        const allocMap = {};
+        [...items].filter((it) => it.need > 0).sort((a, b) => b.need - a.need).forEach((it) => {
+          const give = Math.min(it.need, remaining);
+          allocMap[it.record.id] = give;
+          remaining -= give;
+        });
+        items.forEach((it) => {
+          if (it.need > 0 || it.surplus > 0 || it.received > 0) {
+            rows.push({
+              schoolName: it.record.schoolName,
+              udiseCode: it.record.udiseCode,
+              gender,
+              label: s + " cm",
+              indent: null,
+              received: it.received,
+              surplus: it.surplus,
+              need: it.need,
+              stockAvailable,
+              suggested: allocMap[it.record.id] || 0
+            });
+          }
+        });
+      });
+    });
+    return rows;
+  }
+  const slots = catConfig.buildSlots();
+  slots.forEach((slot) => {
+    const cell = mrcStock[slot.mrcCatId + ":" + slot.mrcKey] || emptyMrcCell();
+    const totalStock = n(cell.received);
+    let distributed = 0;
+    const items = [];
+    records.forEach((r) => {
+      const received = n(slot.getReceived(r));
+      distributed += received;
+      const indent = slot.getIndent(r);
+      const need = bagsRequirement(indent, received);
+      const surplus = bagsSurplus(indent, received);
+      items.push({ record: r, received, indent, need, surplus });
+    });
+    const stockAvailable = Math.max(totalStock - distributed, 0);
+    let remaining = stockAvailable;
+    const allocMap = {};
+    [...items].filter((it) => it.need > 0).sort((a, b) => b.need - a.need).forEach((it) => {
+      const give = Math.min(it.need, remaining);
+      allocMap[it.record.id] = give;
+      remaining -= give;
+    });
+    items.forEach((it) => {
+      if (it.need > 0 || it.surplus > 0 || it.received > 0) {
+        rows.push({
+          schoolName: it.record.schoolName,
+          udiseCode: it.record.udiseCode,
+          gender: slot.gender || null,
+          label: slot.label,
+          indent: it.indent,
+          received: it.received,
+          surplus: it.surplus,
+          need: it.need,
+          stockAvailable,
+          suggested: allocMap[it.record.id] || 0
+        });
+      }
+    });
+  });
+  return rows;
+}
+function ReportsModule({ records, mrcStock }) {
+  const [catId, setCatId] = useState("bags");
+  const [search, setSearch] = useState("");
+  const [onlyNeed, setOnlyNeed] = useState(false);
+
+  const catConfig = REPORT_CATEGORIES.find((c) => c.id === catId);
+  const rows = useMemo(() => computeReportRows(catConfig, records, mrcStock), [catConfig, records, mrcStock]);
+
+  const q = search.trim().toLowerCase();
+  let filtered = q
+    ? rows.filter((r) => r.schoolName.toLowerCase().includes(q) || String(r.udiseCode || "").toLowerCase().includes(q))
+    : rows;
+  if (onlyNeed) filtered = filtered.filter((r) => r.need > 0);
+  filtered = [...filtered].sort((a, b) => b.need - a.need || a.schoolName.localeCompare(b.schoolName));
+
+  const totals = filtered.reduce(
+    (a, r) => ({
+      received: a.received + r.received,
+      need: a.need + r.need,
+      surplus: a.surplus + r.surplus,
+      suggested: a.suggested + r.suggested
+    }),
+    { received: 0, need: 0, surplus: 0, suggested: 0 }
+  );
+  const schoolsNeeding = new Set(rows.filter((r) => r.need > 0).map((r) => r.schoolName + "|" + r.udiseCode)).size;
+
+  const matchingSchools = q
+    ? records.filter(
+        (r) => r.schoolName.toLowerCase().includes(q) || String(r.udiseCode || "").toLowerCase().includes(q)
+      )
+    : [];
+  const selectedSchool = matchingSchools.length === 1 ? matchingSchools[0] : null;
+
+  function exportSingleSchool(school) {
+    if (typeof XLSX === "undefined") return;
+    const wb = XLSX.utils.book_new();
+    REPORT_CATEGORIES.forEach((cat) => {
+      const catRows = computeReportRows(cat, records, mrcStock).filter(
+        (r) => r.udiseCode === school.udiseCode && r.schoolName === school.schoolName
+      );
+      const sheetRows = catRows.map((r) => ({
+        Gender: r.gender ? (r.gender === "boys" ? "Boys" : "Girls") : "\u2014",
+        Item: r.label,
+        "Requirement (per strength)": r.indent === null || r.indent === void 0 ? "\u2014" : r.indent,
+        Received: r.received,
+        Surplus: r.surplus,
+        "Still Needed": r.need,
+        "Stock Available at MRC": r.stockAvailable,
+        "Suggested This Round": r.suggested
+      }));
+      const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{ Note: "No data" }]);
+      XLSX.utils.book_append_sheet(wb, ws, cat.label.slice(0, 31));
+    });
+    const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    const safeName = (school.schoolName || "school").replace(/[^a-z0-9]+/gi, "-").slice(0, 40);
+    XLSX.writeFile(wb, `${safeName}-report-${stamp}.xlsx`);
+  }
+
+  function exportAllCategories() {
+    if (records.length === 0 || typeof XLSX === "undefined") return;
+    const wb = XLSX.utils.book_new();
+    REPORT_CATEGORIES.forEach((cat) => {
+      const catRows = computeReportRows(cat, records, mrcStock);
+      const sheetRows = catRows.map((r) => ({
+        "School Name": r.schoolName,
+        "UDISE Code": r.udiseCode,
+        Gender: r.gender ? (r.gender === "boys" ? "Boys" : "Girls") : "\u2014",
+        Item: r.label,
+        "Requirement (per strength)": r.indent === null || r.indent === void 0 ? "\u2014" : r.indent,
+        Received: r.received,
+        Surplus: r.surplus,
+        "Still Needed": r.need,
+        "Stock Available at MRC": r.stockAvailable,
+        "Suggested This Round": r.suggested
+      }));
+      const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{ Note: "No data" }]);
+      XLSX.utils.book_append_sheet(wb, ws, cat.label.slice(0, 31));
+    });
+    const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `mandal-reports-${stamp}.xlsx`);
+  }
+
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    { className: "space-y-5" },
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl p-5", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg mb-1", style: { color: "#F2EFE6" } }, "Reports"),
+      /* @__PURE__ */ React.createElement(
+        "p",
+        { className: "text-xs mb-4", style: { color: "#9FB8AC" } },
+        "Item-wise, school-wise, size-wise and gender-wise report of every kit item, built from enrolled physical strength. Requirement is auto-calculated per school, and \"Suggested This Round\" shows how to distribute the stock currently available at the MRC \u2014 highest-need schools first."
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        REPORT_CATEGORIES.map((c) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: c.id,
+            onClick: () => setCatId(c.id),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: catId === c.id ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          c.label
+        ))
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4" },
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + catConfig.unitNoun, value: schoolsNeeding }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Total still needed", value: totals.need, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools", value: totals.surplus, accent: "#8FBF9F" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Suggested to distribute now", value: totals.suggested, accent: "#E8C468" })
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap items-center" },
+        /* @__PURE__ */ React.createElement("input", {
+          type: "text",
+          placeholder: "Search school name or UDISE code...",
+          value: search,
+          onChange: (e) => setSearch(e.target.value),
+          className: "input flex-1 min-w-[180px]",
+          style: inputStyle(null, search.trim() !== "")
+        }),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setOnlyNeed((v) => !v),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+            style: onlyNeed ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "Only show items still needed"
+        ),
+        selectedSchool && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => exportSingleSchool(selectedSchool),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap",
+            style: { background: "rgba(143,191,159,0.15)", color: "#8FBF9F", border: "1px solid rgba(143,191,159,0.35)" }
+          },
+          /* @__PURE__ */ React.createElement(Download, { size: 13 }),
+          "Download " + selectedSchool.schoolName + " (Excel)"
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: exportAllCategories,
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap",
+            style: { background: "rgba(232,196,104,0.15)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.35)" }
+          },
+          /* @__PURE__ */ React.createElement(Download, { size: 13 }),
+          "Export all categories (Excel)"
+        )
+      )
+    ),
+    filtered.length === 0
+      ? /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "rounded-2xl py-12 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+          /* @__PURE__ */ React.createElement(AlertCircle, { size: 20, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+          /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No matching rows for this category yet.")
+        )
+      : /* @__PURE__ */ React.createElement(
+          "div",
+          { className: "rounded-2xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+          /* @__PURE__ */ React.createElement(
+            "div",
+            { className: "overflow-x-auto" },
+            /* @__PURE__ */ React.createElement(
+              "table",
+              { className: "w-full text-xs font-mono" },
+              /* @__PURE__ */ React.createElement(
+                "thead",
+                null,
+                /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { style: { background: "rgba(242,239,230,0.06)" } },
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "School"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "UDISE"),
+                  catConfig.hasGender && /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Gender"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Item"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Requirement"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Received"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Surplus"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Still Needed"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Stock at MRC"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#E8C468" } }, "Suggested Now")
+                )
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tbody",
+                null,
+                filtered.map((r, i) => /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } },
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.schoolName),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2", style: { color: "#9FB8AC" } }, r.udiseCode || "\u2014"),
+                  catConfig.hasGender && /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.gender === "boys" ? "Boys" : "Girls"),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.label),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.indent === null || r.indent === void 0 ? "\u2014" : r.indent),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#F2EFE6" } }, r.received),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: r.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, r.surplus),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.need > 0 ? "#D6725C" : "#9FB8AC" } }, r.need),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.stockAvailable),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.suggested > 0 ? "#E8C468" : "#9FB8AC" } }, r.suggested)
+                ))
+              ),
+              /* @__PURE__ */ React.createElement(
+                "tfoot",
+                null,
+                /* @__PURE__ */ React.createElement(
+                  "tr",
+                  { style: { borderTop: "1px solid rgba(242,239,230,0.15)", background: "rgba(232,196,104,0.06)" } },
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans font-semibold", style: { color: "#E8C468" }, colSpan: catConfig.hasGender ? 5 : 4 }, "Total"),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.received),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.surplus),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.need),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2" }),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.suggested)
+                )
+              )
+            )
+          )
+        )
+  );
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(/* @__PURE__ */ React.createElement(SchoolKitApp, null));
