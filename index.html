@@ -1,3 +1,8 @@
+Content is user-generated and unverified.
+
+
+Learn about artifacts
+Syntax highlighting has been disabled due to code size.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -818,8 +823,22 @@ function SchoolKitApp() {
       }
     };
     const t = setTimeout(retryQueue, 1e3);
-    return () => clearTimeout(t);
+    const interval = setInterval(retryQueue, 2e4);
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
   }, [cloudStatus]);
+  useEffect(() => {
+    if (!draftQueuedCount) return;
+    const handler = (ev) => {
+      ev.preventDefault();
+      ev.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [draftQueuedCount]);
   function toggle(key) {
     setOpen((o) => ({ ...o, [key]: !o[key] }));
   }
@@ -1033,6 +1052,25 @@ function SchoolKitApp() {
     setStage("confirmed");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+  async function queueRecordLocally(record, reason) {
+    try {
+      const queue = JSON.parse(window.localStorage?.getItem(DRAFT_QUEUE_KEY) || "[]");
+      const already = queue.some((item) => item.form && item.form.udiseCode === record.udiseCode && item.form.submittedAt === record.submittedAt);
+      if (!already) {
+        queue.push({ form: record, timestamp: Date.now(), attempt: 1 });
+        window.localStorage?.setItem(DRAFT_QUEUE_KEY, JSON.stringify(queue));
+        setDraftQueuedCount(queue.length);
+      }
+      setToast({ type: "error", msg: "Saved on this device \u2014 will sync automatically once connected" + (reason ? " (" + reason + ")" : "") + ". Please keep this browser/device and don't clear its data until it syncs." });
+      return true;
+    } catch (qErr) {
+      setToast({ type: "error", msg: "Couldn't save (" + (reason || "unknown error") + ") \u2014 please correct the data and try again." });
+      return false;
+    }
+  }
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
   async function performSave() {
     const e = validateAll();
     setErrors(e);
@@ -1042,67 +1080,68 @@ function SchoolKitApp() {
       setToast({ type: "error", msg: `Please fill all required fields before submitting (${Object.keys(e).length} missing).` });
       return null;
     }
-    if (cloudStatus !== "connected") {
-      setToast({ type: "error", msg: "Not connected to the shared Google Sheet yet \u2014 please wait a moment and try again." });
-      return null;
-    }
     setSaving(true);
     const record = { ...structuredClone(form), id: form.id || uid(), submittedAt: Date.now() };
-    try {
-      const key = "kit:" + record.udiseCode.trim();
-      if (form.id && editingBaseline !== null) {
-        const fresh = await sheetsDB.get(key);
-        if (fresh) {
-          let freshRecord = null;
-          try {
-            freshRecord = JSON.parse(fresh.value);
-          } catch {
-          }
-          if (freshRecord && freshRecord.submittedAt && freshRecord.submittedAt !== editingBaseline) {
-            const when = new Date(freshRecord.submittedAt).toLocaleString("en-IN");
-            const proceed = window.confirm(
-              `"${freshRecord.schoolName}" was updated by someone else at ${when}, after you started editing.
+    if (cloudStatus !== "connected") {
+      const queued = await queueRecordLocally(record, "not yet connected");
+      setSaving(false);
+      return queued ? { ...record, _queued: true } : null;
+    }
+    const key = "kit:" + record.udiseCode.trim();
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        if (form.id && editingBaseline !== null && attempt === 1) {
+          const fresh = await sheetsDB.get(key);
+          if (fresh) {
+            let freshRecord = null;
+            try {
+              freshRecord = JSON.parse(fresh.value);
+            } catch {
+            }
+            if (freshRecord && freshRecord.submittedAt && freshRecord.submittedAt !== editingBaseline) {
+              const when = new Date(freshRecord.submittedAt).toLocaleString("en-IN");
+              const proceed = window.confirm(
+                `"${freshRecord.schoolName}" was updated by someone else at ${when}, after you started editing.
 
 Save your version anyway and overwrite theirs?`
-            );
-            if (!proceed) {
-              setSaving(false);
-              setToast({ type: "error", msg: "Save cancelled \u2014 reopen this school from the dashboard to see the latest version." });
-              return null;
+              );
+              if (!proceed) {
+                setSaving(false);
+                setToast({ type: "error", msg: "Save cancelled \u2014 reopen this school from the dashboard to see the latest version." });
+                return null;
+              }
             }
           }
         }
+        const res = await sheetsDB.set(key, JSON.stringify(record));
+        if (!res) throw new Error("Storage returned no result for key " + key);
+        setRecords((rs) => {
+          const others = rs.filter((r) => r.udiseCode !== record.udiseCode.trim());
+          return [...others, record].sort((a, b) => a.schoolName.localeCompare(b.schoolName));
+        });
+        setSaving(false);
+        return record;
+      } catch (err) {
+        console.error(`Save attempt ${attempt} failed:`, err);
+        lastErr = err;
+        if (attempt < 3) await wait(attempt * 1500);
       }
-      const res = await sheetsDB.set(key, JSON.stringify(record));
-      if (!res) throw new Error("Storage returned no result for key " + key);
-      setRecords((rs) => {
-        const others = rs.filter((r) => r.udiseCode !== record.udiseCode.trim());
-        return [...others, record].sort((a, b) => a.schoolName.localeCompare(b.schoolName));
-      });
-      setSaving(false);
-      return record;
-    } catch (err) {
-      console.error("Save failed:", err);
-      try {
-        const queue = JSON.parse(window.localStorage?.getItem(DRAFT_QUEUE_KEY) || "[]");
-        const item = { form: record, timestamp: Date.now(), attempt: 1 };
-        queue.push(item);
-        window.localStorage?.setItem(DRAFT_QUEUE_KEY, JSON.stringify(queue));
-        setDraftQueuedCount(queue.length);
-        setToast({ type: "error", msg: "Offline: submission queued for later (" + (err && err.message ? err.message : "unknown error") + "). Will retry when connection is restored." });
-      } catch (qErr) {
-        setToast({ type: "error", msg: "Couldn't save (" + (err && err.message ? err.message : "unknown error") + ") \u2014 please correct the data and try again." });
-      }
-      setSaving(false);
-      return null;
     }
+    const queued = await queueRecordLocally(record, lastErr && lastErr.message ? lastErr.message : "connection issue");
+    setSaving(false);
+    return queued ? { ...record, _queued: true } : null;
   }
   async function finalSubmit() {
     const record = await performSave();
     if (!record) return;
     setSubmittedRecord(record);
     setStage("done");
-    setToast({ type: "success", msg: record.schoolName + " submitted successfully" });
+    if (record._queued) {
+      setToast({ type: "error", msg: record.schoolName + " saved on this device \u2014 will sync automatically" });
+    } else {
+      setToast({ type: "success", msg: record.schoolName + " submitted successfully" });
+    }
     setForm(emptyForm());
     setAutoFilled(false);
     setEditingBaseline(null);
@@ -1555,7 +1594,7 @@ This removes it for everyone using this file and cannot be undone.`);
       /* @__PURE__ */ React.createElement(Icon2, { size: 16 }),
       t.label
     );
-  }))), /* @__PURE__ */ React.createElement("main", { className: "max-w-4xl mx-auto px-6 py-8" }, tab === "submit" && /* @__PURE__ */ React.createElement("form", { onSubmit: (ev) => ev.preventDefault(), onKeyDown: handleFormKeyDown }, form.id && stage === "edit" && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-4 text-sm px-4 py-2 rounded-lg", style: { background: "rgba(232,196,104,0.12)", color: "#E8C468" } }, /* @__PURE__ */ React.createElement(Pencil, { size: 14 }), " Editing existing record for ", form.schoolName || "this school", /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
+  }))), /* @__PURE__ */ React.createElement("main", { className: "max-w-4xl mx-auto px-6 py-8" }, tab === "submit" && /* @__PURE__ */ React.createElement("form", { onSubmit: (ev) => ev.preventDefault(), onKeyDown: handleFormKeyDown }, (cloudStatus !== "connected" || draftQueuedCount > 0) && /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), draftQueuedCount > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2 mb-4 text-sm px-4 py-3 rounded-lg", style: { background: "rgba(232,196,104,0.12)", color: "#E8C468" } }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 16, className: "mt-0.5 flex-shrink-0" }), /* @__PURE__ */ React.createElement("span", null, draftQueuedCount, " submission", draftQueuedCount === 1 ? "" : "s", " saved on this device ", draftQueuedCount === 1 ? "hasn't" : "haven't", " reached the shared sheet yet and ", draftQueuedCount === 1 ? "is" : "are", " syncing automatically. Please keep this tab open and don't clear this browser's data or switch devices until syncing finishes.")), form.id && stage === "edit" && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-4 text-sm px-4 py-2 rounded-lg", style: { background: "rgba(232,196,104,0.12)", color: "#E8C468" } }, /* @__PURE__ */ React.createElement(Pencil, { size: 14 }), " Editing existing record for ", form.schoolName || "this school", /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
     setForm(emptyForm());
     setAutoFilled(false);
     setEditingBaseline(null);
@@ -1834,7 +1873,7 @@ This removes it for everyone using this file and cannot be undone.`);
     },
     saving ? /* @__PURE__ */ React.createElement(Loader2, { size: 18, className: "animate-spin" }) : /* @__PURE__ */ React.createElement(CheckCircle2, { size: 18 }),
     saving ? "Submitting..." : "Final Submit & Generate Acknowledgement"
-  ))), stage === "done" && submittedRecord && /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl p-6 text-center", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement(CheckCircle2, { size: 28, className: "mx-auto mb-3", style: { color: "#8FBF9F" } }), /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-xl mb-1" }, "Submitted successfully"), /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-5", style: { color: "#9FB8AC" } }, submittedRecord.schoolName, " \u2014 ", submittedRecord.udiseCode, " has been saved and synced."), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-center flex-wrap" }, /* @__PURE__ */ React.createElement(
+  ))), stage === "done" && submittedRecord && /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl p-6 text-center", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.15)" } }, submittedRecord._queued ? /* @__PURE__ */ React.createElement(AlertCircle, { size: 28, className: "mx-auto mb-3", style: { color: "#E8C468" } }) : /* @__PURE__ */ React.createElement(CheckCircle2, { size: 28, className: "mx-auto mb-3", style: { color: "#8FBF9F" } }), /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-xl mb-1" }, submittedRecord._queued ? "Saved on this device" : "Submitted successfully"), /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-5", style: { color: submittedRecord._queued ? "#E8C468" : "#9FB8AC" } }, submittedRecord._queued ? `${submittedRecord.schoolName} \u2014 ${submittedRecord.udiseCode} is saved on this device and will sync to the shared sheet automatically once connected. Please don't clear this browser's data or switch devices until it syncs \u2014 check the Cloud sync status above.` : `${submittedRecord.schoolName} \u2014 ${submittedRecord.udiseCode} has been saved and synced.`), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 justify-center flex-wrap" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
