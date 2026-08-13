@@ -1034,8 +1034,8 @@ function SchoolKitApp() {
         const row = form.shoes[side][key];
         if (!blank(row.mismatch) && blank(row.received)) e["shoe_" + side + "_" + key + "_received"] = "Required";
         if (n(row.mismatch) > 0 && n(row.requirement) > 0) {
-          e["shoe_" + side + "_" + key + "_mismatch"] = "Enter either Mismatch or Requirement for this size, not both";
-          e["shoe_" + side + "_" + key + "_requirement"] = "Enter either Mismatch or Requirement for this size, not both";
+          e["shoe_" + side + "_" + key + "_mismatch"] = `You've entered Mismatch for ${sz}cm (${side}) \u2014 remove the Requirement value there since it's not needed once Mismatch is entered.`;
+          e["shoe_" + side + "_" + key + "_requirement"] = `You've entered Mismatch for ${sz}cm (${side}) \u2014 remove the Requirement value there since it's not needed once Mismatch is entered.`;
         }
       });
     });
@@ -1043,11 +1043,12 @@ function SchoolKitApp() {
       const st = strengthTotals(form.physicalStrength);
       const boysActualReq = shoeSideActualRequirementTotal(form.shoes.boys);
       const girlsActualReq = shoeSideActualRequirementTotal(form.shoes.girls);
+      const diffMsg = (label, diff) => diff > 0 ? `Add Requirement for ${diff} more ${label} pair${diff === 1 ? "" : "s"} to match enrollment.` : `Reduce ${label} Requirement by ${-diff} pair${-diff === 1 ? "" : "s"} to match enrollment.`;
       if (boysActualReq !== st.boys) {
-        e.shoes_total_requirement_boys = `Boys actual shoe requirement (${boysActualReq}) must equal boys physical enrollment (${st.boys}).`;
+        e.shoes_total_requirement_boys = diffMsg("boys", st.boys - boysActualReq);
       }
       if (girlsActualReq !== st.girls) {
-        e.shoes_total_requirement_girls = `Girls actual shoe requirement (${girlsActualReq}) must equal girls physical enrollment (${st.girls}).`;
+        e.shoes_total_requirement_girls = diffMsg("girls", st.girls - girlsActualReq);
       }
     }
     if (blank(form.submittedBy)) e.submittedBy = "Required";
@@ -1063,11 +1064,25 @@ function SchoolKitApp() {
     openAllSections();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+  function focusFirstShoeConflict(e) {
+    const key = Object.keys(e).find((k) => k.startsWith("shoe_") && k.endsWith("_requirement") && e[k].includes("remove the Requirement"));
+    if (!key) return false;
+    setTimeout(() => {
+      const el = document.getElementById(key);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+      }
+    }, 50);
+    setToast({ type: "error", msg: e[key] });
+    return true;
+  }
   function handleConfirm() {
     const e = validateAll();
     setErrors(e);
     if (Object.keys(e).length) {
       openAllSections();
+      if (focusFirstShoeConflict(e)) return;
       const shoeKeys = ["shoes_total_requirement_boys", "shoes_total_requirement_girls"].filter((k) => e[k]);
       if (shoeKeys.length && shoeKeys.length === Object.keys(e).length) {
         setToast({ type: "error", msg: shoeKeys.map((k) => e[k]).join(" ") });
@@ -1104,6 +1119,7 @@ function SchoolKitApp() {
     if (Object.keys(e).length) {
       openAllSections();
       setStage("edit");
+      if (focusFirstShoeConflict(e)) return null;
       const shoeKeys2 = ["shoes_total_requirement_boys", "shoes_total_requirement_girls"].filter((k) => e[k]);
       if (shoeKeys2.length && shoeKeys2.length === Object.keys(e).length) {
         setToast({ type: "error", msg: shoeKeys2.map((k) => e[k]).join(" ") });
@@ -1853,9 +1869,12 @@ This removes it for everyone using this file and cannot be undone.`);
     const boysMatch = boysActualReq === st.boys;
     const girlsMatch = girlsActualReq === st.girls;
     const matches = boysMatch && girlsMatch;
+    const boysDiff = st.boys - boysActualReq;
+    const girlsDiff = st.girls - girlsActualReq;
+    const diffMsg = (diff) => diff > 0 ? `Add Requirement for ${diff} more pair${diff === 1 ? "" : "s"} to match enrollment.` : `Reduce Requirement by ${-diff} pair${-diff === 1 ? "" : "s"} to match enrollment.`;
     return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 text-xs flex flex-col gap-1.5 flex-wrap", style: { background: matches ? "rgba(143,191,159,0.1)" : "rgba(214,114,92,0.12)", color: matches ? "#8FBF9F" : "#D6725C" } },
-      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", null, "Boys actual shoe requirement: ", /* @__PURE__ */ React.createElement("strong", null, boysActualReq), "  \xB7  Boys physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, st.boys)), !boysMatch && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "Must match before you can submit.")),
-      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", null, "Girls actual shoe requirement: ", /* @__PURE__ */ React.createElement("strong", null, girlsActualReq), "  \xB7  Girls physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, st.girls)), !girlsMatch && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "Must match before you can submit."))
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", null, "Boys actual shoe requirement: ", /* @__PURE__ */ React.createElement("strong", null, boysActualReq), "  \xB7  Boys physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, st.boys)), !boysMatch && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, diffMsg(boysDiff))),
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", null, "Girls actual shoe requirement: ", /* @__PURE__ */ React.createElement("strong", null, girlsActualReq), "  \xB7  Girls physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, st.girls)), !girlsMatch && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, diffMsg(girlsDiff)))
     );
   })())), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement(
     "button",
@@ -2400,7 +2419,10 @@ function ShoeTable({ sizes, data, onChange, readOnly, errors = {}, side = "boys"
         inputMode: "numeric",
         pattern: "[0-9]*",
         className: "input",
-        title: hasMisError ? "Enter either Mismatch or Requirement for this size, not both" : void 0,
+        id: `shoe_${side}_${key}_mismatch`,
+        "data-key": key,
+        "data-field": "mismatch",
+        title: hasMisError ? "You've entered a Requirement for this size too \u2014 clear one of them before confirming" : void 0,
         style: { ...inputStyle(hasMisError, String(row.mismatch ?? "").trim() !== ""), padding: "5px 6px", width: 56, margin: "0 auto" },
         value: row.mismatch,
         onChange: (e) => onChange(key, "mismatch", e.target.value)
@@ -2412,7 +2434,10 @@ function ShoeTable({ sizes, data, onChange, readOnly, errors = {}, side = "boys"
         inputMode: "numeric",
         pattern: "[0-9]*",
         className: "input",
-        title: hasReqError ? "Enter either Mismatch or Requirement for this size, not both" : void 0,
+        id: `shoe_${side}_${key}_requirement`,
+        "data-key": key,
+        "data-field": "requirement",
+        title: hasReqError ? "You've entered a Mismatch for this size too \u2014 clear one of them before confirming" : void 0,
         style: { ...inputStyle(hasReqError, String(row.requirement ?? "").trim() !== ""), padding: "5px 6px", width: 56, margin: "0 auto" },
         value: row.requirement,
         onChange: (e) => onChange(key, "requirement", e.target.value)
