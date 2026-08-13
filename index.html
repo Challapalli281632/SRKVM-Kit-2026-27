@@ -1,3 +1,8 @@
+Content is user-generated and unverified.
+
+
+Learn about artifacts
+Syntax highlighting has been disabled due to code size.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -343,6 +348,12 @@ function actualShoeRequirement(row) {
 }
 function shoeSideReceivedTotal(side) {
   return Object.values(side).reduce((a, v) => a + n(v.received), 0);
+}
+function shoeSideRequirementTotal(side) {
+  return Object.values(side).reduce((a, v) => a + effectiveShoeRequirement(v), 0);
+}
+function shoesTotalRequirement(shoes) {
+  return shoeSideRequirementTotal(shoes.boys) + shoeSideRequirementTotal(shoes.girls);
 }
 function shoesGrandTotal(s) {
   return shoeSideReceivedTotal(s.boys) + shoeSideReceivedTotal(s.girls);
@@ -1023,6 +1034,13 @@ function SchoolKitApp() {
         if (!blank(row.mismatch) && blank(row.received)) e["shoe_" + side + "_" + key + "_received"] = "Required";
       });
     });
+    {
+      const totalReq = shoesTotalRequirement(form.shoes);
+      const totalEnrollment = strengthTotals(form.physicalStrength).total;
+      if (totalReq !== totalEnrollment) {
+        e.shoes_total_requirement = `Total shoe requirement (${totalReq}) must equal total physical enrollment (${totalEnrollment}).`;
+      }
+    }
     if (blank(form.submittedBy)) e.submittedBy = "Required";
     if (blank(form.mobileNumber)) e.mobileNumber = "Required";
     else if (!/^\d{10}$/.test(form.mobileNumber.trim())) e.mobileNumber = "Enter a valid 10-digit mobile number";
@@ -1041,7 +1059,11 @@ function SchoolKitApp() {
     setErrors(e);
     if (Object.keys(e).length) {
       openAllSections();
-      setToast({ type: "error", msg: `Please fill all required fields before confirming (${Object.keys(e).length} missing).` });
+      if (e.shoes_total_requirement && Object.keys(e).length === 1) {
+        setToast({ type: "error", msg: e.shoes_total_requirement });
+      } else {
+        setToast({ type: "error", msg: `Please fill all required fields before confirming (${Object.keys(e).length} missing).` });
+      }
       return;
     }
     setStage("confirmed");
@@ -1072,7 +1094,11 @@ function SchoolKitApp() {
     if (Object.keys(e).length) {
       openAllSections();
       setStage("edit");
-      setToast({ type: "error", msg: `Please fill all required fields before submitting (${Object.keys(e).length} missing).` });
+      if (e.shoes_total_requirement && Object.keys(e).length === 1) {
+        setToast({ type: "error", msg: e.shoes_total_requirement });
+      } else {
+        setToast({ type: "error", msg: `Please fill all required fields before submitting (${Object.keys(e).length} missing).` });
+      }
       return null;
     }
     setSaving(true);
@@ -1809,7 +1835,12 @@ This removes it for everyone using this file and cannot be undone.`);
       errors,
       onChange: (sizeKey, field, v) => setField(["shoes", "girls", sizeKey, field], v)
     }
-  )))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement(
+  )), (() => {
+    const totalReq = shoesTotalRequirement(form.shoes);
+    const totalEnrollment = strengthTotals(form.physicalStrength).total;
+    const matches = totalReq === totalEnrollment;
+    return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 text-xs flex items-center justify-between flex-wrap gap-2", style: { background: matches ? "rgba(143,191,159,0.1)" : "rgba(214,114,92,0.12)", color: matches ? "#8FBF9F" : "#D6725C" } }, /* @__PURE__ */ React.createElement("span", null, "Total shoe requirement (boys + girls): ", /* @__PURE__ */ React.createElement("strong", null, totalReq), "  \xB7  Total physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, totalEnrollment)), !matches && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "These must match before you can submit."));
+  })())), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
@@ -2533,10 +2564,10 @@ function ShoesAllocationModule({ records, mrcStock }) {
         items,
         totalReceived: items.reduce((a, x) => a + x.received, 0),
         totalNeed: items.reduce((a, x) => a + x.need, 0),
-        totalSurplus: items.reduce((a, x) => a + x.surplus, 0)
+        totalSurplus: items.reduce((a, x) => a + x.surplus, 0),
+        totalStockAvailable: items.reduce((a, x) => a + x.stockAvailable, 0)
       };
     })
-    .filter((s) => s.totalNeed > 0 || s.totalSurplus > 0 || s.totalReceived > 0)
     .sort((a, b) => b.totalNeed - a.totalNeed || b.totalReceived - a.totalReceived);
   const schoolsStillNeeding = schoolRows.filter((s) => s.totalNeed > 0).length;
 
@@ -2546,6 +2577,20 @@ function ShoesAllocationModule({ records, mrcStock }) {
 
   const grandTotalNeed = sizeRows.reduce((a, r) => a + r.totalNeed, 0);
   const grandTotalSchoolSurplus = sizeRows.reduce((a, r) => a + r.totalSchoolSurplus, 0);
+
+  // Totals shown in the stat cards should reflect whatever is currently
+  // selected/visible: in "By school" view (optionally narrowed by the
+  // search box) they're totalled across filteredSchoolRows; in "By size"
+  // view they fall back to the gender-filtered grand totals across all schools.
+  const displaySchoolsStillNeeding = view === "bySchool"
+    ? filteredSchoolRows.filter((s) => s.totalNeed > 0).length
+    : schoolsStillNeeding;
+  const displayTotalNeed = view === "bySchool"
+    ? filteredSchoolRows.reduce((a, s) => a + s.totalNeed, 0)
+    : grandTotalNeed;
+  const displayTotalSurplus = view === "bySchool"
+    ? filteredSchoolRows.reduce((a, s) => a + s.totalSurplus, 0)
+    : grandTotalSchoolSurplus;
 
   return /* @__PURE__ */ React.createElement(
     "div",
@@ -2562,9 +2607,9 @@ function ShoesAllocationModule({ records, mrcStock }) {
       /* @__PURE__ */ React.createElement(
         "div",
         { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing shoes", value: schoolsStillNeeding }),
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Total pairs still needed", value: grandTotalNeed, accent: "#D6725C" }),
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools (mismatch)", value: grandTotalSchoolSurplus, accent: "#8FBF9F" })
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing shoes", value: displaySchoolsStillNeeding }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Total pairs still needed", value: displayTotalNeed, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools (mismatch)", value: displayTotalSurplus, accent: "#8FBF9F" })
       ),
       /* @__PURE__ */ React.createElement(
         "div",
@@ -2778,46 +2823,64 @@ function ShoesBySchoolView({ rows, expanded, toggleExpand }) {
             )
           ),
           /* @__PURE__ */ React.createElement(
-            "span",
-            { className: "text-xs font-semibold", style: { color: row.totalNeed > 0 ? "#D6725C" : "#8FBF9F" } },
-            row.totalNeed > 0 ? row.totalNeed + " pairs needed" : "Received " + row.totalReceived + ", no outstanding need"
+            "div",
+            { className: "flex items-center gap-3 text-xs flex-wrap justify-end" },
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#9FB8AC" } }, "Received so far: " + row.totalReceived),
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "Stock available: " + row.totalStockAvailable),
+            row.totalSurplus > 0 && /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "From schools: " + row.totalSurplus),
+            /* @__PURE__ */ React.createElement("span", { className: "font-semibold", style: { color: "#D6725C" } }, "Needed: " + row.totalNeed)
           )
         ),
         isOpen && /* @__PURE__ */ React.createElement(
           "div",
           { className: "px-4 py-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
-          /* @__PURE__ */ React.createElement(
-            "table",
-            { className: "w-full text-xs" },
-            /* @__PURE__ */ React.createElement(
-              "thead",
-              null,
-              /* @__PURE__ */ React.createElement(
-                "tr",
-                null,
-                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Gender"),
-                /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Size"),
-                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Received"),
-                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Stock available"),
-                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Surplus (mismatch)"),
-                /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Still needed")
+          row.items.length === 0
+            ? /* @__PURE__ */ React.createElement("p", { className: "text-xs", style: { color: "#9FB8AC" } }, "No shoe data entered for this school yet.")
+            : /* @__PURE__ */ React.createElement(
+                "table",
+                { className: "w-full text-xs" },
+                /* @__PURE__ */ React.createElement(
+                  "thead",
+                  null,
+                  /* @__PURE__ */ React.createElement(
+                    "tr",
+                    null,
+                    /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Gender"),
+                    /* @__PURE__ */ React.createElement("th", { className: "text-left py-1", style: { color: "#9FB8AC" } }, "Size"),
+                    /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Received"),
+                    /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Stock available"),
+                    /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Surplus (mismatch)"),
+                    /* @__PURE__ */ React.createElement("th", { className: "text-right py-1", style: { color: "#9FB8AC" } }, "Still needed")
+                  )
+                ),
+                /* @__PURE__ */ React.createElement(
+                  "tbody",
+                  null,
+                  row.items.map((it, i) => /* @__PURE__ */ React.createElement(
+                    "tr",
+                    { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.gender === "boys" ? "Boys" : "Girls"),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.size + " cm"),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, it.received),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.stockAvailable > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.stockAvailable),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.surplus),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, it.need)
+                  ))
+                ),
+                /* @__PURE__ */ React.createElement(
+                  "tfoot",
+                  null,
+                  /* @__PURE__ */ React.createElement(
+                    "tr",
+                    { style: { borderTop: "1px solid rgba(242,239,230,0.15)" } },
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans font-semibold", colSpan: 2, style: { color: "#F2EFE6" } }, "Total"),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#F2EFE6" } }, row.totalReceived),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, "\u2014"),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#8FBF9F" } }, row.totalSurplus),
+                    /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, row.totalNeed)
+                  )
+                )
               )
-            ),
-            /* @__PURE__ */ React.createElement(
-              "tbody",
-              null,
-              row.items.map((it, i) => /* @__PURE__ */ React.createElement(
-                "tr",
-                { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)" } },
-                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.gender === "boys" ? "Boys" : "Girls"),
-                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans", style: { color: "#F2EFE6" } }, it.size + " cm"),
-                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, it.received),
-                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.stockAvailable > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.stockAvailable),
-                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.surplus),
-                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, it.need)
-              ))
-            )
-          )
         )
       );
     })
@@ -2883,6 +2946,35 @@ function uniformsAllocSlots() {
       mrcKey: "c" + c,
       getReceived: (r) => n(r.uniforms.girls["c" + c].received),
       getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "girl", c)
+    });
+  });
+  return slots;
+}
+function shoesAllocSlots() {
+  const slots = [];
+  ["boys", "girls"].forEach((gender) => {
+    SHOE_SIZES.forEach((s) => {
+      const key = "s" + s;
+      slots.push({
+        id: gender + "_" + key,
+        label: s + " cm",
+        gender,
+        mrcCatId: gender === "boys" ? "shoeb" : "shoeg",
+        mrcKey: key,
+        getReceived: (r) => n(r.shoes[gender][key].received),
+        // Shoes don't have a class-strength-based indent like other items \u2014
+        // synthesize an equivalent "total requirement" (received + still
+        // needed) so the shared distribution pivot math (indent - received
+        // = still needed) works the same way it does for every other item.
+        getIndent: (r) => {
+          const row = r.shoes[gender][key];
+          return n(row.received) + effectiveShoeRequirement(row);
+        },
+        // Shoes track surplus/mismatch (wrong size or damaged pairs a school
+        // reports back) as its own field rather than derived from indent vs
+        // received, so surface that directly instead of the generic formula.
+        getSurplus: (r) => n(r.shoes[gender][key].mismatch)
+      });
     });
   });
   return slots;
@@ -2961,10 +3053,10 @@ function AllocationModule({ title, description, unitNoun, records, mrcStock, all
         items,
         totalReceived: items.reduce((a, x) => a + x.received, 0),
         totalNeed: items.reduce((a, x) => a + x.need, 0),
-        totalSurplus: items.reduce((a, x) => a + x.surplus, 0)
+        totalSurplus: items.reduce((a, x) => a + x.surplus, 0),
+        totalStockAvailable: items.reduce((a, x) => a + x.stockAvailable, 0)
       };
     })
-    .filter((s) => s.totalNeed > 0 || s.totalSurplus > 0 || s.totalReceived > 0)
     .sort((a, b) => b.totalNeed - a.totalNeed || b.totalReceived - a.totalReceived);
   const schoolsStillNeeding = schoolRows.filter((s) => s.totalNeed > 0).length;
 
@@ -2974,6 +3066,19 @@ function AllocationModule({ title, description, unitNoun, records, mrcStock, all
 
   const grandTotalNeed = sizeRows.reduce((a, r) => a + r.totalNeed, 0);
   const grandTotalSchoolSurplus = sizeRows.reduce((a, r) => a + r.totalSchoolSurplus, 0);
+
+  // Totals shown in the stat cards reflect whatever is currently selected:
+  // in "By school" view (optionally narrowed by search) they total up
+  // filteredSchoolRows; in "By size" view they fall back to the grand totals.
+  const displaySchoolsStillNeeding = view === "bySchool"
+    ? filteredSchoolRows.filter((s) => s.totalNeed > 0).length
+    : schoolsStillNeeding;
+  const displayTotalNeed = view === "bySchool"
+    ? filteredSchoolRows.reduce((a, s) => a + s.totalNeed, 0)
+    : grandTotalNeed;
+  const displayTotalSurplus = view === "bySchool"
+    ? filteredSchoolRows.reduce((a, s) => a + s.totalSurplus, 0)
+    : grandTotalSchoolSurplus;
 
   return /* @__PURE__ */ React.createElement(
     "div",
@@ -2986,9 +3091,9 @@ function AllocationModule({ title, description, unitNoun, records, mrcStock, all
       /* @__PURE__ */ React.createElement(
         "div",
         { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + unitNoun, value: schoolsStillNeeding }),
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Total " + unitNoun + " still needed", value: grandTotalNeed, accent: "#D6725C" }),
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools", value: grandTotalSchoolSurplus, accent: "#8FBF9F" })
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + unitNoun, value: displaySchoolsStillNeeding }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Total " + unitNoun + " still needed", value: displayTotalNeed, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools", value: displayTotalSurplus, accent: "#8FBF9F" })
       ),
       /* @__PURE__ */ React.createElement(
         "div",
@@ -3199,15 +3304,20 @@ function AllocationBySchoolView({ rows, expanded, toggleExpand, hasGender }) {
             )
           ),
           /* @__PURE__ */ React.createElement(
-            "span",
-            { className: "text-xs font-semibold", style: { color: row.totalNeed > 0 ? "#D6725C" : "#8FBF9F" } },
-            row.totalNeed > 0 ? row.totalNeed + " still needed" : "Received " + row.totalReceived + ", no outstanding need"
+            "div",
+            { className: "flex items-center gap-3 text-xs flex-wrap justify-end" },
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#9FB8AC" } }, "Received so far: " + row.totalReceived),
+            /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "Stock available: " + row.totalStockAvailable),
+            row.totalSurplus > 0 && /* @__PURE__ */ React.createElement("span", { style: { color: "#8FBF9F" } }, "From schools: " + row.totalSurplus),
+            /* @__PURE__ */ React.createElement("span", { className: "font-semibold", style: { color: "#D6725C" } }, "Needed: " + row.totalNeed)
           )
         ),
         isOpen && /* @__PURE__ */ React.createElement(
           "div",
           { className: "px-4 py-3", style: { borderTop: "1px solid rgba(242,239,230,0.08)" } },
-          /* @__PURE__ */ React.createElement(
+          row.items.length === 0
+            ? /* @__PURE__ */ React.createElement("p", { className: "text-xs", style: { color: "#9FB8AC" } }, "No data entered for this school yet.")
+            : /* @__PURE__ */ React.createElement(
             "table",
             { className: "w-full text-xs" },
             /* @__PURE__ */ React.createElement(
@@ -3237,6 +3347,19 @@ function AllocationBySchoolView({ rows, expanded, toggleExpand, hasGender }) {
                 /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: it.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, it.surplus),
                 /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, it.need)
               ))
+            ),
+            /* @__PURE__ */ React.createElement(
+              "tfoot",
+              null,
+              /* @__PURE__ */ React.createElement(
+                "tr",
+                { style: { borderTop: "1px solid rgba(242,239,230,0.15)" } },
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 font-sans font-semibold", colSpan: hasGender ? 2 : 1, style: { color: "#F2EFE6" } }, "Total"),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#F2EFE6" } }, row.totalReceived),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono", style: { color: "#9FB8AC" } }, "\u2014"),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#8FBF9F" } }, row.totalSurplus),
+                /* @__PURE__ */ React.createElement("td", { className: "py-1.5 text-right font-mono font-semibold", style: { color: "#D6725C" } }, row.totalNeed)
+              )
             )
           )
         )
@@ -3625,13 +3748,15 @@ const DISTRIBUTION_CATEGORIES = [
   { id: "belts", label: "Belts", unitNoun: "belts", hasGender: false, buildSlots: beltsAllocSlots, enrollLabel: "Enrollment (by category)", sizeLabel: "Belt Category" },
   { id: "dict", label: "Dictionaries", unitNoun: "dictionaries", hasGender: false, buildSlots: dictAllocSlots, enrollLabel: "Enrollment", sizeLabel: "Dictionary" },
   { id: "notebooks", label: "Note books", unitNoun: "note books", hasGender: false, buildSlots: notebooksAllocSlots, enrollLabel: "Quantity Required (enrollment \u00d7 norm)", sizeLabel: "Notebook Type" },
-  { id: "uniforms", label: "Uniforms", unitNoun: "uniforms", hasGender: true, buildSlots: uniformsAllocSlots, enrollLabel: "Enrollment", sizeLabel: "Class" }
+  { id: "uniforms", label: "Uniforms", unitNoun: "uniforms", hasGender: true, buildSlots: uniformsAllocSlots, enrollLabel: "Enrollment", sizeLabel: "Class" },
+  { id: "shoes", label: "Shoes", unitNoun: "shoes", hasGender: true, buildSlots: shoesAllocSlots, enrollLabel: "Total Requirement (Received + Still Needed)", sizeLabel: "Shoe Size" }
 ];
 const DISTRIBUTION_METRICS = [
   { id: "enrollment", label: "Enrollment", accent: "#F2EFE6" },
   { id: "received", label: "Received", accent: "#8FBF9F" },
   { id: "need", label: "Still Needed", accent: "#D6725C" },
-  { id: "suggested", label: "Suggested Now", accent: "#E8C468" }
+  { id: "suggested", label: "Suggested Now", accent: "#E8C468" },
+  { id: "surplus", label: "Surplus (Mismatch)", accent: "#7EA8D8" }
 ];
 function computeDistributionPivot(catConfig, records, mrcStock, genderFilter) {
   const allSlots = catConfig.buildSlots();
@@ -3668,8 +3793,9 @@ function computeDistributionPivot(catConfig, records, mrcStock, genderFilter) {
       const indent = slot.getIndent(r);
       const need = bagsRequirement(indent, received);
       const suggested = allocMaps[slot.id][r.id] || 0;
-      if (indent > 0 || received > 0) hasAny = true;
-      return { slotId: slot.id, indent, received, need, suggested };
+      const surplus = slot.getSurplus ? n(slot.getSurplus(r)) : bagsSurplus(indent, received);
+      if (indent > 0 || received > 0 || surplus > 0) hasAny = true;
+      return { slotId: slot.id, indent, received, need, suggested, surplus };
     });
     return { id: r.id, schoolName: r.schoolName, udiseCode: r.udiseCode, cells, hasAny };
   });
@@ -3699,6 +3825,7 @@ function DistributionModule({ records, mrcStock }) {
   const grandTotal = slotTotals.reduce((a, v) => a + v, 0);
   const schoolsCovered = filtered.length;
   const schoolsStillNeeding = filtered.filter((s) => s.cells.some((c) => c.need > 0)).length;
+  const schoolsWithSurplus = filtered.filter((s) => s.cells.some((c) => c.surplus > 0)).length;
 
   function buildSheetRows(cat) {
     const catRows = computeReportRows(cat, records, mrcStock);
@@ -3710,6 +3837,7 @@ function DistributionModule({ records, mrcStock }) {
       row["Received"] = r.received;
       row["Suggested to Distribute Now"] = r.suggested;
       row["Still Needed"] = r.need;
+      row["Surplus (Mismatch)"] = r.surplus;
       row["Stock Available at MRC"] = r.stockAvailable;
       return row;
     });
@@ -3797,9 +3925,10 @@ function DistributionModule({ records, mrcStock }) {
       ),
       /* @__PURE__ */ React.createElement(
         "div",
-        { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
+        { className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4" },
         /* @__PURE__ */ React.createElement(StatCard, { label: "Schools shown", value: schoolsCovered }),
         /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + catConfig.unitNoun, value: schoolsStillNeeding, accent: "#D6725C" }),
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Schools with surplus (mismatch)", value: schoolsWithSurplus, accent: "#7EA8D8" }),
         /* @__PURE__ */ React.createElement(StatCard, { label: "Total \u2014 " + metricConfig.label, value: grandTotal, accent: metricConfig.accent })
       ),
       /* @__PURE__ */ React.createElement(
@@ -3901,8 +4030,8 @@ function DistributionModule({ records, mrcStock }) {
                     "td",
                     {
                       key: c.slotId,
-                      className: "px-3 py-2 text-right" + (metric === "need" || metric === "suggested" ? " font-semibold" : ""),
-                      style: { color: metric === "need" ? (c.need > 0 ? "#D6725C" : "#9FB8AC") : metric === "suggested" ? (c.suggested > 0 ? "#E8C468" : "#9FB8AC") : "#F2EFE6" }
+                      className: "px-3 py-2 text-right" + (metric === "need" || metric === "suggested" || metric === "surplus" ? " font-semibold" : ""),
+                      style: { color: metric === "need" ? (c.need > 0 ? "#D6725C" : "#9FB8AC") : metric === "suggested" ? (c.suggested > 0 ? "#E8C468" : "#9FB8AC") : metric === "surplus" ? (c.surplus > 0 ? "#7EA8D8" : "#9FB8AC") : "#F2EFE6" }
                     },
                     c[metric === "enrollment" ? "indent" : metric]
                   )),
