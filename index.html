@@ -1,3 +1,8 @@
+Content is user-generated and unverified.
+
+
+Learn about artifacts
+Syntax highlighting has been disabled due to code size.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1027,6 +1032,10 @@ function SchoolKitApp() {
         const key = "s" + sz;
         const row = form.shoes[side][key];
         if (!blank(row.mismatch) && blank(row.received)) e["shoe_" + side + "_" + key + "_received"] = "Required";
+        if (!blank(row.mismatch) && !blank(row.requirement)) {
+          e["shoe_" + side + "_" + key + "_mismatch"] = "Enter either Mismatch or Requirement for this size, not both";
+          e["shoe_" + side + "_" + key + "_requirement"] = "Enter either Mismatch or Requirement for this size, not both";
+        }
       });
     });
     {
@@ -2357,6 +2366,7 @@ function ShoeTable({ sizes, data, onChange, readOnly, errors = {}, side = "boys"
     actualTot += actual;
     const hasRecError = errors[`shoe_${side}_${key}_received`];
     const hasMisError = errors[`shoe_${side}_${key}_mismatch`];
+    const hasReqError = errors[`shoe_${side}_${key}_requirement`];
     return /* @__PURE__ */ React.createElement("tr", { key: s, style: { borderTop: "1px solid rgba(242,239,230,0.08)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } }, /* @__PURE__ */ React.createElement("td", { className: "text-left px-2 py-1 font-sans", style: { color: "#F2EFE6" } }, s, "cm"), /* @__PURE__ */ React.createElement("td", { className: "px-1 py-1" }, readOnly ? /* @__PURE__ */ React.createElement("div", { className: "font-mono", style: { width: 56, margin: "0 auto", color: "#F2EFE6" } }, n(row.received)) : /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -2377,6 +2387,7 @@ function ShoeTable({ sizes, data, onChange, readOnly, errors = {}, side = "boys"
         inputMode: "numeric",
         pattern: "[0-9]*",
         className: "input",
+        title: hasMisError ? "Enter either Mismatch or Requirement for this size, not both" : void 0,
         style: { ...inputStyle(hasMisError, String(row.mismatch ?? "").trim() !== ""), padding: "5px 6px", width: 56, margin: "0 auto" },
         value: row.mismatch,
         onChange: (e) => onChange(key, "mismatch", e.target.value)
@@ -2388,7 +2399,8 @@ function ShoeTable({ sizes, data, onChange, readOnly, errors = {}, side = "boys"
         inputMode: "numeric",
         pattern: "[0-9]*",
         className: "input",
-        style: { ...inputStyle(null, String(row.requirement ?? "").trim() !== ""), padding: "5px 6px", width: 56, margin: "0 auto" },
+        title: hasReqError ? "Enter either Mismatch or Requirement for this size, not both" : void 0,
+        style: { ...inputStyle(hasReqError, String(row.requirement ?? "").trim() !== ""), padding: "5px 6px", width: 56, margin: "0 auto" },
         value: row.requirement,
         onChange: (e) => onChange(key, "requirement", e.target.value)
       }
