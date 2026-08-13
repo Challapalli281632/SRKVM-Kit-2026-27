@@ -350,6 +350,12 @@ function shoeSideRequirementTotal(side) {
 function shoesTotalRequirement(shoes) {
   return shoeSideRequirementTotal(shoes.boys) + shoeSideRequirementTotal(shoes.girls);
 }
+function shoeSideActualRequirementTotal(side) {
+  return Object.values(side).reduce((a, v) => a + actualShoeRequirement(v), 0);
+}
+function shoesTotalActualRequirement(shoes) {
+  return shoeSideActualRequirementTotal(shoes.boys) + shoeSideActualRequirementTotal(shoes.girls);
+}
 function shoesGrandTotal(s) {
   return shoeSideReceivedTotal(s.boys) + shoeSideReceivedTotal(s.girls);
 }
@@ -1027,17 +1033,21 @@ function SchoolKitApp() {
         const key = "s" + sz;
         const row = form.shoes[side][key];
         if (!blank(row.mismatch) && blank(row.received)) e["shoe_" + side + "_" + key + "_received"] = "Required";
-        if (!blank(row.mismatch) && !blank(row.requirement)) {
+        if (n(row.mismatch) > 0 && n(row.requirement) > 0) {
           e["shoe_" + side + "_" + key + "_mismatch"] = "Enter either Mismatch or Requirement for this size, not both";
           e["shoe_" + side + "_" + key + "_requirement"] = "Enter either Mismatch or Requirement for this size, not both";
         }
       });
     });
     {
-      const totalReq = shoesTotalRequirement(form.shoes);
-      const totalEnrollment = strengthTotals(form.physicalStrength).total;
-      if (totalReq !== totalEnrollment) {
-        e.shoes_total_requirement = `Total shoe requirement (${totalReq}) must equal total physical enrollment (${totalEnrollment}).`;
+      const st = strengthTotals(form.physicalStrength);
+      const boysActualReq = shoeSideActualRequirementTotal(form.shoes.boys);
+      const girlsActualReq = shoeSideActualRequirementTotal(form.shoes.girls);
+      if (boysActualReq !== st.boys) {
+        e.shoes_total_requirement_boys = `Boys actual shoe requirement (${boysActualReq}) must equal boys physical enrollment (${st.boys}).`;
+      }
+      if (girlsActualReq !== st.girls) {
+        e.shoes_total_requirement_girls = `Girls actual shoe requirement (${girlsActualReq}) must equal girls physical enrollment (${st.girls}).`;
       }
     }
     if (blank(form.submittedBy)) e.submittedBy = "Required";
@@ -1058,8 +1068,9 @@ function SchoolKitApp() {
     setErrors(e);
     if (Object.keys(e).length) {
       openAllSections();
-      if (e.shoes_total_requirement && Object.keys(e).length === 1) {
-        setToast({ type: "error", msg: e.shoes_total_requirement });
+      const shoeKeys = ["shoes_total_requirement_boys", "shoes_total_requirement_girls"].filter((k) => e[k]);
+      if (shoeKeys.length && shoeKeys.length === Object.keys(e).length) {
+        setToast({ type: "error", msg: shoeKeys.map((k) => e[k]).join(" ") });
       } else {
         setToast({ type: "error", msg: `Please fill all required fields before confirming (${Object.keys(e).length} missing).` });
       }
@@ -1093,8 +1104,9 @@ function SchoolKitApp() {
     if (Object.keys(e).length) {
       openAllSections();
       setStage("edit");
-      if (e.shoes_total_requirement && Object.keys(e).length === 1) {
-        setToast({ type: "error", msg: e.shoes_total_requirement });
+      const shoeKeys2 = ["shoes_total_requirement_boys", "shoes_total_requirement_girls"].filter((k) => e[k]);
+      if (shoeKeys2.length && shoeKeys2.length === Object.keys(e).length) {
+        setToast({ type: "error", msg: shoeKeys2.map((k) => e[k]).join(" ") });
       } else {
         setToast({ type: "error", msg: `Please fill all required fields before submitting (${Object.keys(e).length} missing).` });
       }
@@ -1835,10 +1847,16 @@ This removes it for everyone using this file and cannot be undone.`);
       onChange: (sizeKey, field, v) => setField(["shoes", "girls", sizeKey, field], v)
     }
   )), (() => {
-    const totalReq = shoesTotalRequirement(form.shoes);
-    const totalEnrollment = strengthTotals(form.physicalStrength).total;
-    const matches = totalReq === totalEnrollment;
-    return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 text-xs flex items-center justify-between flex-wrap gap-2", style: { background: matches ? "rgba(143,191,159,0.1)" : "rgba(214,114,92,0.12)", color: matches ? "#8FBF9F" : "#D6725C" } }, /* @__PURE__ */ React.createElement("span", null, "Total shoe requirement (boys + girls): ", /* @__PURE__ */ React.createElement("strong", null, totalReq), "  \xB7  Total physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, totalEnrollment)), !matches && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "These must match before you can submit."));
+    const st = strengthTotals(form.physicalStrength);
+    const boysActualReq = shoeSideActualRequirementTotal(form.shoes.boys);
+    const girlsActualReq = shoeSideActualRequirementTotal(form.shoes.girls);
+    const boysMatch = boysActualReq === st.boys;
+    const girlsMatch = girlsActualReq === st.girls;
+    const matches = boysMatch && girlsMatch;
+    return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 text-xs flex flex-col gap-1.5 flex-wrap", style: { background: matches ? "rgba(143,191,159,0.1)" : "rgba(214,114,92,0.12)", color: matches ? "#8FBF9F" : "#D6725C" } },
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", null, "Boys actual shoe requirement: ", /* @__PURE__ */ React.createElement("strong", null, boysActualReq), "  \xB7  Boys physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, st.boys)), !boysMatch && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "Must match before you can submit.")),
+      /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("span", null, "Girls actual shoe requirement: ", /* @__PURE__ */ React.createElement("strong", null, girlsActualReq), "  \xB7  Girls physical enrollment: ", /* @__PURE__ */ React.createElement("strong", null, st.girls)), !girlsMatch && /* @__PURE__ */ React.createElement("span", { className: "font-semibold" }, "Must match before you can submit."))
+    );
   })())), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-5" }, /* @__PURE__ */ React.createElement(
     "button",
     {
