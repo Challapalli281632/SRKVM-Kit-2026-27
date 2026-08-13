@@ -1347,6 +1347,11 @@ This removes it for everyone using this file and cannot be undone.`);
       return acc;
     }, { schools: 0, students: 0, bags: 0, belts: 0, dict: 0, notebooks: 0, uniforms: 0, shoes: 0 });
   }, [records]);
+  const pendingSchools = useMemo(() => {
+    const submittedCodes = new Set(records.map((r) => String(r.udiseCode).trim()));
+    return Object.entries(SCHOOL_LOOKUP).filter(([code]) => !submittedCodes.has(code)).map(([code, entry]) => ({ udiseCode: code, schoolName: entry.name })).sort((a, b) => a.schoolName.localeCompare(b.schoolName));
+  }, [records]);
+  const [showPendingModal, setShowPendingModal] = useState(false);
   const stockRegister = useMemo(() => {
     const bagsRows = BAG_SIZES.map((s) => ({ key: s.key, label: s.label, indent: 0 }));
     const bagsData = {};
@@ -2007,7 +2012,7 @@ This removes it for everyone using this file and cannot be undone.`);
     },
     /* @__PURE__ */ React.createElement(Download, { size: 16 }),
     " Export mandal data"
-  ))), /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-6", style: { color: "#9FB8AC" } }, cloudStatus === "connected" ? 'Every school here is shared with anyone using this same file \u2014 updates from others appear within a few seconds. "Backup data (JSON)" is still worth doing occasionally as an extra safety copy.' : cloudStatus === "error" ? "Couldn't reach the shared Google Sheet right now \u2014 check your internet connection. Anything you save won't go through until this reconnects." : "Connecting to the shared Google Sheet..."), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8" }, /* @__PURE__ */ React.createElement(StatCard, { label: "Schools", value: overall.schools }), /* @__PURE__ */ React.createElement(StatCard, { label: "Students", value: overall.students, accent: "#8FBF9F" }), /* @__PURE__ */ React.createElement(StatCard, { label: "Bags", value: overall.bags }), /* @__PURE__ */ React.createElement(StatCard, { label: "Belts", value: overall.belts }), /* @__PURE__ */ React.createElement(StatCard, { label: "Dictionaries", value: overall.dict }), /* @__PURE__ */ React.createElement(StatCard, { label: "Note books", value: overall.notebooks }), /* @__PURE__ */ React.createElement(StatCard, { label: "Uniforms", value: overall.uniforms }), /* @__PURE__ */ React.createElement(StatCard, { label: "Shoes", value: overall.shoes, accent: "#E8C468" })), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 py-16 justify-center", style: { color: "#9FB8AC" } }, /* @__PURE__ */ React.createElement(Loader2, { size: 18, className: "animate-spin" }), " Loading...") : filteredRecords.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl py-16 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 22, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }), /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, records.length === 0 ? "No school records yet." : "No matches for your search.")) : /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm font-mono" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "rgba(242,239,230,0.06)" } }, ["School", "UDISE", "HM Name", "Mobile", "Students", "Bags", "Belts", "Dict.", "Note bks", "Uniform", "Shoes", ""].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, className: "text-left px-4 py-3 font-medium", style: { color: "#9FB8AC" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, filteredRecords.map((r, i) => {
+  ))), /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-6", style: { color: "#9FB8AC" } }, cloudStatus === "connected" ? 'Every school here is shared with anyone using this same file \u2014 updates from others appear within a few seconds. "Backup data (JSON)" is still worth doing occasionally as an extra safety copy.' : cloudStatus === "error" ? "Couldn't reach the shared Google Sheet right now \u2014 check your internet connection. Anything you save won't go through until this reconnects." : "Connecting to the shared Google Sheet..."), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8" }, /* @__PURE__ */ React.createElement(StatCard, { label: "Schools", value: overall.schools }), /* @__PURE__ */ React.createElement(StatCard, { label: "Pending", value: pendingSchools.length, accent: pendingSchools.length ? "#D6725C" : "#8FBF9F", onClick: pendingSchools.length ? () => setShowPendingModal(true) : void 0 }), /* @__PURE__ */ React.createElement(StatCard, { label: "Students", value: overall.students, accent: "#8FBF9F" }), /* @__PURE__ */ React.createElement(StatCard, { label: "Bags", value: overall.bags }), /* @__PURE__ */ React.createElement(StatCard, { label: "Belts", value: overall.belts }), /* @__PURE__ */ React.createElement(StatCard, { label: "Dictionaries", value: overall.dict }), /* @__PURE__ */ React.createElement(StatCard, { label: "Note books", value: overall.notebooks }), /* @__PURE__ */ React.createElement(StatCard, { label: "Uniforms", value: overall.uniforms }), /* @__PURE__ */ React.createElement(StatCard, { label: "Shoes", value: overall.shoes, accent: "#E8C468" })), loading ? /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 py-16 justify-center", style: { color: "#9FB8AC" } }, /* @__PURE__ */ React.createElement(Loader2, { size: 18, className: "animate-spin" }), " Loading...") : filteredRecords.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl py-16 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 22, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }), /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, records.length === 0 ? "No school records yet." : "No matches for your search.")) : /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } }, /* @__PURE__ */ React.createElement("div", { className: "overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-sm font-mono" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "rgba(242,239,230,0.06)" } }, ["School", "UDISE", "HM Name", "Mobile", "Students", "Bags", "Belts", "Dict.", "Note bks", "Uniform", "Shoes", ""].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, className: "text-left px-4 py-3 font-medium", style: { color: "#9FB8AC" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, filteredRecords.map((r, i) => {
     const st = strengthTotals(r.physicalStrength || r.strength);
     return /* @__PURE__ */ React.createElement("tr", { key: r.id, style: { borderTop: "1px solid rgba(242,239,230,0.08)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } }, /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3 font-sans", style: { color: "#F2EFE6" } }, r.schoolName), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#9FB8AC" } }, r.udiseCode), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3 font-sans", style: { color: "#F2EFE6" } }, r.submittedBy || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#9FB8AC" } }, r.mobileNumber || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, st.total), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, bagsTotal(r.bags)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, beltsTotal(r.belts)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, dictTotal(r.dictionaries)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, notebooksGrandTotal(r.notebooks)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, uniformsGrandTotal(r.uniforms)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3", style: { color: "#F2EFE6" } }, shoesGrandTotal(r.shoes)), /* @__PURE__ */ React.createElement("td", { className: "px-4 py-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("button", { onClick: () => editRecord(r), style: { color: "#E8C468" }, title: "Edit full entry" }, /* @__PURE__ */ React.createElement(Pencil, { size: 15 })), /* @__PURE__ */ React.createElement(
       "button",
@@ -2056,6 +2061,9 @@ This removes it for everyone using this file and cannot be undone.`);
     record: dupCheck,
     onCancel: cancelEditExisting,
     onEdit: confirmEditExisting
+  }), showPendingModal && /* @__PURE__ */ React.createElement(PendingSchoolsModal, {
+    schools: pendingSchools,
+    onClose: () => setShowPendingModal(false)
   }));
 }
 function ModalShell({ children }) {
@@ -2148,6 +2156,27 @@ function DuplicateSubmissionModal({ record, onEdit, onCancel }) {
     },
     "Yes, edit it"
   )));
+}
+function PendingSchoolsModal({ schools, onClose }) {
+  return /* @__PURE__ */ React.createElement(ModalShell, null, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-2" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, style: { color: "#D6725C" } }), /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg", style: { color: "#F2EFE6" } }, "Pending schools (", schools.length, ")")), /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-3", style: { color: "#9FB8AC" } }, "These schools in the mandal haven't submitted their kit data yet."), /* @__PURE__ */ React.createElement("div", { className: "max-h-80 overflow-y-auto rounded-xl", style: { border: "1px solid rgba(242,239,230,0.1)" } }, schools.map((s, i) => /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      key: s.udiseCode,
+      className: "px-4 py-2.5 text-sm",
+      style: { borderTop: i ? "1px solid rgba(242,239,230,0.08)" : "none" }
+    },
+    /* @__PURE__ */ React.createElement("p", { style: { color: "#F2EFE6" } }, s.schoolName),
+    /* @__PURE__ */ React.createElement("p", { className: "text-xs font-mono", style: { color: "#9FB8AC" } }, s.udiseCode)
+  ))), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: onClose,
+      className: "w-full mt-4 rounded-xl px-4 py-2.5 text-sm font-semibold",
+      style: { background: "#E8C468", color: "#1B2E28" }
+    },
+    "Close"
+  ));
 }
 function Section({ id, title, icon: Icon2, open, onToggle, children, summary, forceOpen }) {
   const isOpen = forceOpen || open;
@@ -2509,8 +2538,18 @@ function ReviewPanel({ form, frozenClasses }) {
     }
   )))), /* @__PURE__ */ React.createElement(ReviewSection, { title: "Shoes" }, /* @__PURE__ */ React.createElement("div", { className: "space-y-5" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-2", style: { color: "#9FB8AC" } }, "Boys \u2014 sizes 16 to 33 cm"), /* @__PURE__ */ React.createElement(ShoeTable, { sizes: SHOE_SIZES, data: form.shoes.boys, readOnly: true })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-2", style: { color: "#9FB8AC" } }, "Girls \u2014 sizes 16 to 33 cm"), /* @__PURE__ */ React.createElement(ShoeTable, { sizes: SHOE_SIZES, data: form.shoes.girls, readOnly: true })))), /* @__PURE__ */ React.createElement(ReviewSection, { title: "Name of the Head Master" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm", style: { color: "#F2EFE6" } }, form.submittedBy || "\u2014")), /* @__PURE__ */ React.createElement(ReviewSection, { title: "Mobile Number" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm", style: { color: "#F2EFE6" } }, form.mobileNumber || "\u2014")));
 }
-function StatCard({ label, value, accent }) {
-  return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl p-4", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } }, /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-1", style: { color: "#9FB8AC" } }, label), /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-2xl", style: { color: accent || "#F2EFE6" } }, value));
+function StatCard({ label, value, accent, onClick }) {
+  return /* @__PURE__ */ React.createElement(
+    onClick ? "button" : "div",
+    {
+      type: onClick ? "button" : void 0,
+      onClick,
+      className: "rounded-xl p-4 text-left" + (onClick ? " cursor-pointer" : ""),
+      style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)", width: "100%" }
+    },
+    /* @__PURE__ */ React.createElement("p", { className: "text-xs mb-1", style: { color: "#9FB8AC" } }, label),
+    /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-2xl", style: { color: accent || "#F2EFE6" } }, value)
+  );
 }
 function inputStyle(error, filled) {
   return {
