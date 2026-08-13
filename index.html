@@ -693,14 +693,12 @@ function SchoolKitApp() {
   const [search, setSearch] = useState("");
   const [autoFilled, setAutoFilled] = useState(false);
   const [hmLocked, setHmLocked] = useState(false);
+  const [dupCheck, setDupCheck] = useState(null);
   const [ackUdise, setAckUdise] = useState("");
   const [registerOpen, setRegisterOpen] = useState(true);
   const [stage, setStage] = useState("edit");
   const [submittedRecord, setSubmittedRecord] = useState(null);
   const [editingBaseline, setEditingBaseline] = useState(null);
-  const [existingSubmissionInfo, setExistingSubmissionInfo] = useState(null);
-  const [showConflictDialog, setShowConflictDialog] = useState(false);
-  const [conflictData, setConflictData] = useState(null);
   const [lastDraftSave, setLastDraftSave] = useState(null);
   const [draftQueuedCount, setDraftQueuedCount] = useState(0);
   const [cloudStatus, setCloudStatus] = useState("connecting");
@@ -911,13 +909,25 @@ function SchoolKitApp() {
     if (autoFilled) setAutoFilled(false);
     if (hmLocked) setHmLocked(false);
   }
-  async function loadSchoolByUdise(codeRaw) {
+  function loadSchoolByUdise(codeRaw) {
     const code = (codeRaw ?? "").trim();
     const match = SCHOOL_LOOKUP[code];
     if (!match) {
       setAutoFilled(false);
       setErrors((e) => ({ ...e, udiseCode: "No school found for this UDISE code." }));
       setToast({ type: "error", msg: "No school found for UDISE code " + (code || "(empty)") + "." });
+      return false;
+    }
+    // This UDISE code may already have a submission on file (from this
+    // session or from anyone else, since records sync live from the shared
+    // sheet). If so, don't silently drop a fresh/blank form on top of it —
+    // pause and ask whether they want to edit what was already submitted.
+    // Skip the prompt if we're already mid-edit of that exact submission
+    // (e.g. re-selecting the same code after choosing "Yes" below).
+    const already = records.find((r) => String(r.udiseCode).trim() === code);
+    const alreadyEditingThisRecord = already && editingBaseline !== null && already.submittedAt === editingBaseline;
+    if (already && !alreadyEditingThisRecord) {
+      setDupCheck(already);
       return false;
     }
     setForm((f) => ({
@@ -941,40 +951,18 @@ function SchoolKitApp() {
     setHmLocked(!!(match.hm || match.mobile));
     setErrors((e) => ({ ...e, udiseCode: void 0, schoolName: void 0, submittedBy: match.hm ? void 0 : e.submittedBy, mobileNumber: match.mobile ? void 0 : e.mobileNumber }));
     setToast({ type: "success", msg: "Loaded " + match.name + "." });
-    
-    // Check if there's an existing submission for this school
-    try {
-      const key = "kit:" + code;
-      const existing = await sheetsDB.get(key);
-      if (existing) {
-        let existingRecord = null;
-        try {
-          existingRecord = JSON.parse(existing.value);
-        } catch {}
-        
-        if (existingRecord) {
-          setExistingSubmissionInfo({
-            previousData: existingRecord,
-            submittedAt: existingRecord.submittedAt,
-            submittedBy: existingRecord.submittedBy || "Unknown",
-            mobileNumber: existingRecord.mobileNumber || "—"
-          });
-          setEditingBaseline(existingRecord.submittedAt);
-        } else {
-          setExistingSubmissionInfo(null);
-          setEditingBaseline(null);
-        }
-      } else {
-        setExistingSubmissionInfo(null);
-        setEditingBaseline(null);
-      }
-    } catch (err) {
-      console.log("Could not check for existing submission:", err);
-      setExistingSubmissionInfo(null);
-      setEditingBaseline(null);
-    }
-    
     return true;
+  }
+  function confirmEditExisting() {
+    if (!dupCheck) return;
+    editRecord(dupCheck);
+    setDupCheck(null);
+  }
+  function cancelEditExisting() {
+    setDupCheck(null);
+    setField(["udiseCode"], "");
+    setAutoFilled(false);
+    setHmLocked(false);
   }
   function validate() {
     const e = {};
@@ -1576,10 +1564,8 @@ This removes it for everyone using this file and cannot be undone.`);
     setForm(emptyForm());
     setAutoFilled(false);
     setEditingBaseline(null);
-    setExistingSubmissionInfo(null);
     setStage("edit");
-  }, className: "ml-auto" }, /* @__PURE__ */ React.createElement(X, { size: 14 }))), 
-existingSubmissionInfo && stage === "edit" && /* @__PURE__ */ React.createElement("div", { className: "mb-4 p-4 rounded-lg text-xs", style: { background: "rgba(214,114,92,0.15)", border: "1px solid rgba(214,114,92,0.35)", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("p", { className: "font-medium mb-2 flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { style: { color: "#D6725C" } }, "⚠"), " Previous submission found"), /* @__PURE__ */ React.createElement("p", { className: "mb-2" }, "Last submitted by: ", existingSubmissionInfo.submittedBy, " on ", new Date(existingSubmissionInfo.submittedAt).toLocaleString("en-IN")), /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "Saving will replace the previous submission. If someone else has also edited this, you'll be asked to choose which version to keep.")), stage === "edit" && lastDraftSave && /* @__PURE__ */ React.createElement("div", { className: "mb-4 text-xs px-4 py-2 rounded-lg", style: { background: "rgba(143,191,159,0.12)", color: "#8FBF9F" } }, "\u2713 Draft saved ", lastDraftSave.toLocaleTimeString("en-IN"), draftQueuedCount > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "1rem", color: "#D6725C" } }, "\u2022 ", draftQueuedCount, " submission", draftQueuedCount === 1 ? "" : "s", " queued (will send when online)")), stage === "edit" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Section, { id: "info", title: "School details", icon: School, open: open.info, onToggle: toggle, forceOpen: true }, /* @__PURE__ */ React.createElement("div", { className: "grid sm:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs mb-1.5", style: { color: "#9FB8AC" } }, "UDISE Code"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  }, className: "ml-auto" }, /* @__PURE__ */ React.createElement(X, { size: 14 }))), stage === "edit" && lastDraftSave && /* @__PURE__ */ React.createElement("div", { className: "mb-4 text-xs px-4 py-2 rounded-lg", style: { background: "rgba(143,191,159,0.12)", color: "#8FBF9F" } }, "\u2713 Draft saved ", lastDraftSave.toLocaleTimeString("en-IN"), draftQueuedCount > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "1rem", color: "#D6725C" } }, "\u2022 ", draftQueuedCount, " submission", draftQueuedCount === 1 ? "" : "s", " queued (will send when online)")), stage === "edit" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Section, { id: "info", title: "School details", icon: School, open: open.info, onToggle: toggle, forceOpen: true }, /* @__PURE__ */ React.createElement("div", { className: "grid sm:grid-cols-2 gap-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "block text-xs mb-1.5", style: { color: "#9FB8AC" } }, "UDISE Code"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "select",
     {
       id: "udise-code-input",
@@ -1956,7 +1942,7 @@ existingSubmissionInfo && stage === "edit" && /* @__PURE__ */ React.createElemen
     },
     /* @__PURE__ */ React.createElement(Download, { size: 16 }),
     " Download Acknowledgement PDF"
-  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "allocations" && /* @__PURE__ */ React.createElement(CombinedAllocationsModule, { records, mrcStock }), tab === "distribution" && /* @__PURE__ */ React.createElement(DistributionModule, { records, mrcStock }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), toast && /* @__PURE__ */ React.createElement(
+  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "allocations" && /* @__PURE__ */ React.createElement(CombinedAllocationsModule, { records, mrcStock }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), tab === "distribution" && /* @__PURE__ */ React.createElement(DistributionModule, { records, mrcStock }), toast && /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg",
@@ -1970,6 +1956,10 @@ existingSubmissionInfo && stage === "edit" && /* @__PURE__ */ React.createElemen
       setMrcLocked(false);
       setShowUnlockConfirm(false);
     }
+  }), dupCheck && /* @__PURE__ */ React.createElement(DuplicateSubmissionModal, {
+    record: dupCheck,
+    onCancel: cancelEditExisting,
+    onEdit: confirmEditExisting
   }));
 }
 function ModalShell({ children }) {
@@ -2029,6 +2019,38 @@ function UnlockPasscodeModal({ correctCode, onCancel, onSuccess }) {
       style: { background: "#E8C468", color: "#1B2E28" }
     },
     "Unlock"
+  )));
+}
+function DuplicateSubmissionModal({ record, onEdit, onCancel }) {
+  const when = record && record.submittedAt ? new Date(record.submittedAt).toLocaleString("en-IN") : "an earlier date";
+  return /* @__PURE__ */ React.createElement(ModalShell, null, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mb-2" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 18, style: { color: "#E8C468" } }), /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg", style: { color: "#F2EFE6" } }, "Data already submitted")), /* @__PURE__ */ React.createElement(
+    "p",
+    { className: "text-sm mb-4", style: { color: "#F2EFE6" } },
+    "Details for ",
+    /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, record ? record.schoolName : ""),
+    " were already submitted by ",
+    /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, (record && record.submittedBy) || "\u2014"),
+    " on ",
+    /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, when),
+    "."
+  ), /* @__PURE__ */ React.createElement("p", { className: "text-sm mb-4", style: { color: "#9FB8AC" } }, "Do you want to edit the already submitted data?"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-4" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: onCancel,
+      className: "flex-1 rounded-xl px-4 py-2.5 text-sm font-medium",
+      style: { background: "rgba(242,239,230,0.08)", color: "#F2EFE6" }
+    },
+    "No"
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: onEdit,
+      className: "flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold",
+      style: { background: "#E8C468", color: "#1B2E28" }
+    },
+    "Yes, edit it"
   )));
 }
 function Section({ id, title, icon: Icon2, open, onToggle, children, summary, forceOpen }) {
@@ -3297,7 +3319,8 @@ function CombinedAllocationsModule({ records, mrcStock }) {
     { id: "belts", label: "Belts Allocation", unitNoun: "belts", hasGender: false, slotsFn: beltsAllocSlots, description: "School-wise belt data collected from entries, and an auto-calculated guide to which schools still need which belt category — so you know who to give available stock to after it's received at the mandal." },
     { id: "dictionaries", label: "Dictionaries Allocation", unitNoun: "dictionaries", hasGender: false, slotsFn: dictAllocSlots, description: "School-wise dictionary data collected from entries, and an auto-calculated guide to which schools still need which dictionary — so you know who to give available stock to after it's received at the mandal." },
     { id: "notebooks", label: "Note books Allocation", unitNoun: "note books", hasGender: false, slotsFn: notebooksAllocSlots, description: "School-wise note book data collected from entries, and an auto-calculated guide to which schools still need which note book type — so you know who to give available stock to after it's received at the mandal." },
-    { id: "uniforms", label: "Uniforms Allocation", unitNoun: "uniforms", hasGender: true, slotsFn: uniformsAllocSlots, description: "School-wise uniform data collected from entries, and an auto-calculated guide to which schools still need which class — gender-wise — so you know who to give available stock to after it's received at the mandal." }
+    { id: "uniforms", label: "Uniforms Allocation", unitNoun: "uniforms", hasGender: true, slotsFn: uniformsAllocSlots, description: "School-wise uniform data collected from entries, and an auto-calculated guide to which schools still need which class — gender-wise — so you know who to give available stock to after it's received at the mandal." },
+    { id: "shoes", label: "Shoes Allocation", custom: true }
   ];
   
   const currentAlloc = allocations.find(a => a.id === activeAlloc);
@@ -3326,15 +3349,17 @@ function CombinedAllocationsModule({ records, mrcStock }) {
         ))
       )
     ),
-    /* @__PURE__ */ React.createElement(AllocationModule, {
-      title: currentAlloc.label,
-      description: currentAlloc.description,
-      unitNoun: currentAlloc.unitNoun,
-      records,
-      mrcStock,
-      allSlots: currentAlloc.slotsFn(),
-      hasGender: currentAlloc.hasGender
-    })
+    currentAlloc.custom
+      ? /* @__PURE__ */ React.createElement(ShoesAllocationModule, { records, mrcStock })
+      : /* @__PURE__ */ React.createElement(AllocationModule, {
+          title: currentAlloc.label,
+          description: currentAlloc.description,
+          unitNoun: currentAlloc.unitNoun,
+          records,
+          mrcStock,
+          allSlots: currentAlloc.slotsFn(),
+          hasGender: currentAlloc.hasGender
+        })
   );
 }
 function ReportsModule({ records, mrcStock }) {
