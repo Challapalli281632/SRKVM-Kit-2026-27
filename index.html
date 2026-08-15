@@ -104,6 +104,7 @@ const Shirt = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /*
 const Footprints = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("ellipse", { cx: "8", cy: "8", rx: "3", ry: "4" }), /* @__PURE__ */ React.createElement("ellipse", { cx: "16", cy: "16", rx: "3", ry: "4" }), /* @__PURE__ */ React.createElement("path", { d: "M8 12v2" }), /* @__PURE__ */ React.createElement("path", { d: "M16 20v2" })) });
 const BookOpen = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M12 7v14" }), /* @__PURE__ */ React.createElement("path", { d: "M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" })) });
 const Download = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M12 3v12" }), /* @__PURE__ */ React.createElement("path", { d: "m7 10 5 5 5-5" }), /* @__PURE__ */ React.createElement("path", { d: "M5 21h14" })) });
+const Upload = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("path", { d: "M12 21V9" }), /* @__PURE__ */ React.createElement("path", { d: "m7 14 5-5 5 5" }), /* @__PURE__ */ React.createElement("path", { d: "M5 21h14" })) });
 const PlusCircle = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "12", r: "10" }), /* @__PURE__ */ React.createElement("path", { d: "M12 8v8" }), /* @__PURE__ */ React.createElement("path", { d: "M8 12h8" })) });
 const ClipboardList = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("rect", { x: "8", y: "2", width: "8", height: "4", rx: "1" }), /* @__PURE__ */ React.createElement("path", { d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" }), /* @__PURE__ */ React.createElement("path", { d: "M12 11h4" }), /* @__PURE__ */ React.createElement("path", { d: "M12 16h4" }), /* @__PURE__ */ React.createElement("path", { d: "M8 11h.01" }), /* @__PURE__ */ React.createElement("path", { d: "M8 16h.01" })) });
 const Loader2 = (p) => /* @__PURE__ */ React.createElement(Icon, { ...p, paths: /* @__PURE__ */ React.createElement("path", { d: "M21 12a9 9 0 1 1-6.219-8.56" }) });
@@ -1634,7 +1635,7 @@ This removes it for everyone using this file and cannot be undone.`);
     const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
     XLSX.writeFile(wb, `mandal-stock-register-${stamp}.xlsx`);
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen chalk-texture font-body", style: { background: "#1B2E28", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("style", null, FONT_STYLE), /* @__PURE__ */ React.createElement("header", { className: "border-b", style: { borderColor: "rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 pt-10 pb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", style: { background: "#E8C468", color: "#1B2E28" } }, /* @__PURE__ */ React.createElement(Package, { size: 22, strokeWidth: 2.5 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "font-chalk text-xl sm:text-2xl leading-tight" }, "Sarvepalli Radha Krishnan Vidhyarathi Mithra Kit 2026-27"), /* @__PURE__ */ React.createElement("p", { className: "text-sm mt-1", style: { color: "#9FB8AC" } }, "School Kit Preparation \u2014 Mandal Level Data Collection"))))), /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } }, [{ key: "submit", label: "School entry", icon: PlusCircle }, { key: "dashboard", label: "Mandal dashboard", icon: ClipboardList }, { key: "acknowledgement", label: "Acknowledgement", icon: CheckCircle2 }, { key: "stockregister", label: "Mandal Stock Register", icon: ClipboardList }, { key: "allocations", label: "Item Allocations", icon: Package }, { key: "distribution", label: "Distribution", icon: Package }, { key: "reports", label: "Reports", icon: ClipboardList }].map((t) => {
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen chalk-texture font-body", style: { background: "#1B2E28", color: "#F2EFE6" } }, /* @__PURE__ */ React.createElement("style", null, FONT_STYLE), /* @__PURE__ */ React.createElement("header", { className: "border-b", style: { borderColor: "rgba(242,239,230,0.15)" } }, /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 pt-10 pb-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0", style: { background: "#E8C468", color: "#1B2E28" } }, /* @__PURE__ */ React.createElement(Package, { size: 22, strokeWidth: 2.5 })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h1", { className: "font-chalk text-xl sm:text-2xl leading-tight" }, "Sarvepalli Radha Krishnan Vidhyarathi Mithra Kit 2026-27"), /* @__PURE__ */ React.createElement("p", { className: "text-sm mt-1", style: { color: "#9FB8AC" } }, "School Kit Preparation \u2014 Mandal Level Data Collection"))))), /* @__PURE__ */ React.createElement("div", { className: "max-w-4xl mx-auto px-6 mt-6" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } }, [{ key: "submit", label: "School entry", icon: PlusCircle }, { key: "dashboard", label: "Mandal dashboard", icon: ClipboardList }, { key: "acknowledgement", label: "Acknowledgement", icon: CheckCircle2 }, { key: "enrollment", label: "Enrollment", icon: BookOpen }, { key: "stockregister", label: "Mandal Stock Register", icon: ClipboardList }, { key: "allocations", label: "Item Allocations", icon: Package }, { key: "distribution", label: "Distribution", icon: Package }, { key: "reports", label: "Reports", icon: ClipboardList }].map((t) => {
     const Icon2 = t.icon, active = tab === t.key;
     return /* @__PURE__ */ React.createElement(
       "button",
@@ -2043,7 +2044,7 @@ This removes it for everyone using this file and cannot be undone.`);
     },
     /* @__PURE__ */ React.createElement(Download, { size: 16 }),
     " Download Acknowledgement PDF"
-  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "allocations" && /* @__PURE__ */ React.createElement(CombinedAllocationsModule, { records, mrcStock }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), tab === "distribution" && /* @__PURE__ */ React.createElement(DistributionModule, { records, mrcStock }), toast && /* @__PURE__ */ React.createElement(
+  )))))), tab === "stockregister" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(CloudStatusBadge, { status: cloudStatus, error: cloudError, slow: slowConnect }), mrcStockSyncError && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-2 mb-4 text-xs", style: { background: "rgba(214,114,92,0.12)", color: "#D6725C" } }, mrcStockSyncError), /* @__PURE__ */ React.createElement(StockRegisterSection, { register: stockRegister, open: registerOpen, onToggle: () => setRegisterOpen((v) => !v), mrcStock, onMrcChange, mrcLocked, onRequestLock: () => setMrcLocked(true), onRequestUnlock: () => setShowUnlockConfirm(true), onExport: exportRegisterExcel })), tab === "allocations" && /* @__PURE__ */ React.createElement(CombinedAllocationsModule, { records, mrcStock }), tab === "reports" && /* @__PURE__ */ React.createElement(ReportsModule, { records, mrcStock }), tab === "distribution" && /* @__PURE__ */ React.createElement(DistributionModule, { records, mrcStock }), tab === "enrollment" && /* @__PURE__ */ React.createElement(EnrollmentModule, { records, setRecords, cloudStatus, setToast }), toast && /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg",
@@ -2977,7 +2978,8 @@ function bagsAllocSlots() {
     mrcCatId: "bags",
     mrcKey: s.key,
     getReceived: (r) => n(r.bags[s.key].received),
-    getIndent: (r) => bagsIndent(r.physicalStrength || r.strength, s)
+    getIndent: (r) => bagsIndent(r.physicalStrength || r.strength, s),
+    getUdiseIndent: (r) => bagsIndent(r.strength, s)
   }));
 }
 function beltsAllocSlots() {
@@ -2987,7 +2989,8 @@ function beltsAllocSlots() {
     mrcCatId: "belts",
     mrcKey: c.key,
     getReceived: (r) => n(r.belts[c.key].received),
-    getIndent: (r) => beltsIndent(r.physicalStrength || r.strength, c)
+    getIndent: (r) => beltsIndent(r.physicalStrength || r.strength, c),
+    getUdiseIndent: (r) => beltsIndent(r.strength, c)
   }));
 }
 function dictAllocSlots() {
@@ -2997,7 +3000,8 @@ function dictAllocSlots() {
     mrcCatId: "dict",
     mrcKey: it.key,
     getReceived: (r) => n(r.dictionaries[it.key].received),
-    getIndent: (r) => dictIndent(r.physicalStrength || r.strength, it)
+    getIndent: (r) => dictIndent(r.physicalStrength || r.strength, it),
+    getUdiseIndent: (r) => dictIndent(r.strength, it)
   }));
 }
 function notebooksAllocSlots() {
@@ -3007,7 +3011,8 @@ function notebooksAllocSlots() {
     mrcCatId: "nb",
     mrcKey: t.key,
     getReceived: (r) => notebookTypeReceivedTotal(r.notebooks[t.key]),
-    getIndent: (r) => notebookTypeIndentTotal(r.physicalStrength || r.strength, t.key)
+    getIndent: (r) => notebookTypeIndentTotal(r.physicalStrength || r.strength, t.key),
+    getUdiseIndent: (r) => notebookTypeIndentTotal(r.strength, t.key)
   }));
 }
 function uniformsAllocSlots() {
@@ -3020,7 +3025,8 @@ function uniformsAllocSlots() {
       mrcCatId: "unifb",
       mrcKey: "c" + c,
       getReceived: (r) => n(r.uniforms.boys["c" + c].received),
-      getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "boy", c)
+      getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "boy", c),
+      getUdiseIndent: (r) => uniformIndent(r.strength, "boy", c)
     });
     slots.push({
       id: "girls_c" + c,
@@ -3029,7 +3035,8 @@ function uniformsAllocSlots() {
       mrcCatId: "unifg",
       mrcKey: "c" + c,
       getReceived: (r) => n(r.uniforms.girls["c" + c].received),
-      getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "girl", c)
+      getIndent: (r) => uniformIndent(r.physicalStrength || r.strength, "girl", c),
+      getUdiseIndent: (r) => uniformIndent(r.strength, "girl", c)
     });
   });
   return slots;
@@ -3494,6 +3501,8 @@ function computeReportRows(catConfig, records, mrcStock) {
               gender,
               label: s + " cm",
               indent: null,
+              udiseIndent: null,
+              increase: null,
               received: it.received,
               surplus: it.surplus,
               need: it.need,
@@ -3518,7 +3527,9 @@ function computeReportRows(catConfig, records, mrcStock) {
       const indent = slot.getIndent(r);
       const need = bagsRequirement(indent, received);
       const surplus = bagsSurplus(indent, received);
-      items.push({ record: r, received, indent, need, surplus });
+      const udiseIndent = slot.getUdiseIndent ? slot.getUdiseIndent(r) : null;
+      const increase = udiseIndent === null ? null : Math.max(0, indent - udiseIndent);
+      items.push({ record: r, received, indent, need, surplus, udiseIndent, increase });
     });
     const stockAvailable = Math.max(totalStock - distributed, 0);
     let remaining = stockAvailable;
@@ -3536,6 +3547,8 @@ function computeReportRows(catConfig, records, mrcStock) {
           gender: slot.gender || null,
           label: slot.label,
           indent: it.indent,
+          udiseIndent: it.udiseIndent,
+          increase: it.increase,
           received: it.received,
           surplus: it.surplus,
           need: it.need,
@@ -3602,26 +3615,89 @@ function ReportsModule({ records, mrcStock }) {
   const [catId, setCatId] = useState("bags");
   const [search, setSearch] = useState("");
   const [onlyNeed, setOnlyNeed] = useState(false);
+  const [onlyIncrease, setOnlyIncrease] = useState(false);
+  const [genderFilter, setGenderFilter] = useState("both");
+  const [itemFilter, setItemFilter] = useState("all");
 
   const catConfig = REPORT_CATEGORIES.find((c) => c.id === catId);
   const rows = useMemo(() => computeReportRows(catConfig, records, mrcStock), [catConfig, records, mrcStock]);
+  const itemOptions = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    rows.forEach((r) => {
+      if (!seen.has(r.label)) {
+        seen.add(r.label);
+        list.push(r.label);
+      }
+    });
+    return list;
+  }, [rows]);
+
+  function onCatChange(id) {
+    setCatId(id);
+    setGenderFilter("both");
+    setItemFilter("all");
+  }
 
   const q = search.trim().toLowerCase();
   let filtered = q
     ? rows.filter((r) => r.schoolName.toLowerCase().includes(q) || String(r.udiseCode || "").toLowerCase().includes(q))
     : rows;
   if (onlyNeed) filtered = filtered.filter((r) => r.need > 0);
+  if (onlyIncrease) filtered = filtered.filter((r) => r.increase !== null && r.increase !== void 0 && r.increase > 0);
+  if (catConfig.hasGender && genderFilter !== "both") filtered = filtered.filter((r) => r.gender === genderFilter);
+  if (itemFilter !== "all") filtered = filtered.filter((r) => r.label === itemFilter);
   filtered = [...filtered].sort((a, b) => b.need - a.need || a.schoolName.localeCompare(b.schoolName));
 
   const totals = filtered.reduce(
     (a, r) => ({
+      requirement: a.requirement + (r.indent === null || r.indent === void 0 ? 0 : r.indent),
+      udiseIndent: a.udiseIndent + (r.udiseIndent === null || r.udiseIndent === void 0 ? 0 : r.udiseIndent),
       received: a.received + r.received,
       need: a.need + r.need,
       surplus: a.surplus + r.surplus,
-      suggested: a.suggested + r.suggested
+      suggested: a.suggested + r.suggested,
+      increase: a.increase + (r.increase === null || r.increase === void 0 ? 0 : r.increase)
     }),
-    { received: 0, need: 0, surplus: 0, suggested: 0 }
+    { requirement: 0, udiseIndent: 0, received: 0, need: 0, surplus: 0, suggested: 0, increase: 0 }
   );
+  const schoolsWithIncrease = new Set(
+    rows.filter((r) => r.increase !== null && r.increase !== void 0 && r.increase > 0).map((r) => r.schoolName + "|" + r.udiseCode)
+  ).size;
+  let stockTotal = 0;
+  {
+    const seenStockLabels = new Set();
+    filtered.forEach((r) => {
+      if (!seenStockLabels.has(r.label)) {
+        seenStockLabels.add(r.label);
+        stockTotal += r.stockAvailable || 0;
+      }
+    });
+  }
+  const filteredLabelCount = new Set(filtered.map((r) => r.label)).size;
+  const grouped = useMemo(() => {
+    if (filteredLabelCount <= 1) return null;
+    return itemOptions
+      .map((label) => filtered.filter((r) => r.label === label))
+      .filter((rowsForLabel) => rowsForLabel.length > 0)
+      .map((rowsForLabel) => {
+        const sortedRows = [...rowsForLabel].sort((a, b) => b.need - a.need || a.schoolName.localeCompare(b.schoolName));
+        const subtotal = sortedRows.reduce(
+          (a, r) => ({
+            requirement: a.requirement + (r.indent === null || r.indent === void 0 ? 0 : r.indent),
+            udiseIndent: a.udiseIndent + (r.udiseIndent === null || r.udiseIndent === void 0 ? 0 : r.udiseIndent),
+            received: a.received + r.received,
+            surplus: a.surplus + r.surplus,
+            need: a.need + r.need,
+            suggested: a.suggested + r.suggested,
+            increase: a.increase + (r.increase === null || r.increase === void 0 ? 0 : r.increase)
+          }),
+          { requirement: 0, udiseIndent: 0, received: 0, surplus: 0, need: 0, suggested: 0, increase: 0 }
+        );
+        const stockAvailable = sortedRows.length ? sortedRows[0].stockAvailable || 0 : 0;
+        return { label: sortedRows[0].label, rows: sortedRows, subtotal: { ...subtotal, stockAvailable } };
+      });
+  }, [filtered, itemOptions, filteredLabelCount]);
   const schoolsNeeding = new Set(rows.filter((r) => r.need > 0).map((r) => r.schoolName + "|" + r.udiseCode)).size;
 
   const matchingSchools = q
@@ -3642,6 +3718,8 @@ function ReportsModule({ records, mrcStock }) {
         Gender: r.gender ? (r.gender === "boys" ? "Boys" : "Girls") : "\u2014",
         Item: r.label,
         "Requirement (per strength)": r.indent === null || r.indent === void 0 ? "\u2014" : r.indent,
+        "UDISE Indent (baseline)": r.udiseIndent === null || r.udiseIndent === void 0 ? "\u2014" : r.udiseIndent,
+        "Increase (enrollment growth)": r.increase === null || r.increase === void 0 ? "\u2014" : r.increase,
         Received: r.received,
         Surplus: r.surplus,
         "Still Needed": r.need,
@@ -3667,6 +3745,8 @@ function ReportsModule({ records, mrcStock }) {
         Gender: r.gender ? (r.gender === "boys" ? "Boys" : "Girls") : "\u2014",
         Item: r.label,
         "Requirement (per strength)": r.indent === null || r.indent === void 0 ? "\u2014" : r.indent,
+        "UDISE Indent (baseline)": r.udiseIndent === null || r.udiseIndent === void 0 ? "\u2014" : r.udiseIndent,
+        "Increase (enrollment growth)": r.increase === null || r.increase === void 0 ? "\u2014" : r.increase,
         Received: r.received,
         Surplus: r.surplus,
         "Still Needed": r.need,
@@ -3690,7 +3770,7 @@ function ReportsModule({ records, mrcStock }) {
       /* @__PURE__ */ React.createElement(
         "p",
         { className: "text-xs mb-4", style: { color: "#9FB8AC" } },
-        "Item-wise, school-wise, size-wise and gender-wise report of every kit item, built from enrolled physical strength. Requirement is auto-calculated per school, and \"Suggested This Round\" shows how to distribute the stock currently available at the MRC \u2014 highest-need schools first."
+        "Item-wise, school-wise, size-wise and gender-wise report of every kit item, built from enrolled physical strength. Requirement is auto-calculated per school, and \"Suggested This Round\" shows how to distribute the stock currently available at the MRC \u2014 highest-need schools first. Whenever a school's Physical Roll enrollment is higher than its UDISE enrollment, the extra requirement it creates is shown item-wise in the \"Increase\" column below \u2014 use the \"Only show enrollment increase\" filter to see just those rows."
       ),
       /* @__PURE__ */ React.createElement(
         "div",
@@ -3699,20 +3779,54 @@ function ReportsModule({ records, mrcStock }) {
           "button",
           {
             key: c.id,
-            onClick: () => setCatId(c.id),
+            onClick: () => onCatChange(c.id),
             className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
             style: catId === c.id ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
           },
           c.label
         ))
       ),
+      catConfig.hasGender && /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap" },
+        ["both", "boys", "girls"].map((g) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: g,
+            onClick: () => setGenderFilter(g),
+            className: "px-3 py-1 rounded-full text-xs font-semibold",
+            style: genderFilter === g
+              ? { background: "rgba(232,196,104,0.2)", color: "#E8C468", border: "1px solid rgba(232,196,104,0.4)" }
+              : { background: "transparent", color: "#F2EFE6", border: "1px solid rgba(242,239,230,0.25)" }
+          },
+          g === "both" ? "All genders" : g === "boys" ? "Boys" : "Girls"
+        ))
+      ),
+      itemOptions.length > 1 && /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex gap-2 mb-3 flex-wrap items-center" },
+        /* @__PURE__ */ React.createElement("span", { className: "text-xs", style: { color: "#9FB8AC" } }, "Item:"),
+        /* @__PURE__ */ React.createElement(
+          "select",
+          {
+            value: itemFilter,
+            onChange: (e) => setItemFilter(e.target.value),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold",
+            style: { background: "rgba(242,239,230,0.08)", color: "#E8C468", border: "1px solid rgba(242,239,230,0.15)" }
+          },
+          /* @__PURE__ */ React.createElement("option", { value: "all", style: { color: "#1B2E28", background: "#F2EFE6" } }, "All items"),
+          itemOptions.map((label) => /* @__PURE__ */ React.createElement("option", { key: label, value: label, style: { color: "#1B2E28", background: "#F2EFE6" } }, label))
+        )
+      ),
       /* @__PURE__ */ React.createElement(
         "div",
-        { className: "grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4" },
+        { className: "grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4" },
         /* @__PURE__ */ React.createElement(StatCard, { label: "Schools still needing " + catConfig.unitNoun, value: schoolsNeeding }),
         /* @__PURE__ */ React.createElement(StatCard, { label: "Total still needed", value: totals.need, accent: "#D6725C" }),
         /* @__PURE__ */ React.createElement(StatCard, { label: "Surplus from schools", value: totals.surplus, accent: "#8FBF9F" }),
-        /* @__PURE__ */ React.createElement(StatCard, { label: "Suggested to distribute now", value: totals.suggested, accent: "#E8C468" })
+        /* @__PURE__ */ React.createElement(StatCard, { label: "Suggested to distribute now", value: totals.suggested, accent: "#E8C468" }),
+        catConfig.id !== "shoes" && /* @__PURE__ */ React.createElement(StatCard, { label: "Schools with enrollment increase", value: schoolsWithIncrease, accent: "#E8C468" }),
+        catConfig.id !== "shoes" && /* @__PURE__ */ React.createElement(StatCard, { label: "Extra " + catConfig.unitNoun + " needed from increase", value: totals.increase, accent: "#E8C468" })
       ),
       /* @__PURE__ */ React.createElement(
         "div",
@@ -3733,6 +3847,15 @@ function ReportsModule({ records, mrcStock }) {
             style: onlyNeed ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
           },
           "Only show items still needed"
+        ),
+        catConfig.id !== "shoes" && /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => setOnlyIncrease((v) => !v),
+            className: "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+            style: onlyIncrease ? { background: "#E8C468", color: "#1B2E28" } : { background: "rgba(242,239,230,0.08)", color: "#9FB8AC" }
+          },
+          "Only show enrollment increase"
         ),
         selectedSchool && /* @__PURE__ */ React.createElement(
           "button",
@@ -3783,6 +3906,8 @@ function ReportsModule({ records, mrcStock }) {
                   catConfig.hasGender && /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Gender"),
                   /* @__PURE__ */ React.createElement("th", { className: "text-left px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Item"),
                   /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Requirement"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "UDISE Indent"),
+                  /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#E8C468" } }, "Increase"),
                   /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Received"),
                   /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Surplus"),
                   /* @__PURE__ */ React.createElement("th", { className: "text-right px-3 py-2 font-medium", style: { color: "#9FB8AC" } }, "Still Needed"),
@@ -3793,20 +3918,54 @@ function ReportsModule({ records, mrcStock }) {
               /* @__PURE__ */ React.createElement(
                 "tbody",
                 null,
-                filtered.map((r, i) => /* @__PURE__ */ React.createElement(
-                  "tr",
-                  { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } },
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.schoolName),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2", style: { color: "#9FB8AC" } }, r.udiseCode || "\u2014"),
-                  catConfig.hasGender && /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.gender === "boys" ? "Boys" : "Girls"),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.label),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.indent === null || r.indent === void 0 ? "\u2014" : r.indent),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#F2EFE6" } }, r.received),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: r.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, r.surplus),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.need > 0 ? "#D6725C" : "#9FB8AC" } }, r.need),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.stockAvailable),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.suggested > 0 ? "#E8C468" : "#9FB8AC" } }, r.suggested)
-                ))
+                grouped
+                  ? grouped.flatMap((group, gi) => [
+                      ...group.rows.map((r, i) => /* @__PURE__ */ React.createElement(
+                        "tr",
+                        { key: "g" + gi + "-" + i, style: { borderTop: "1px solid rgba(242,239,230,0.06)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } },
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.schoolName),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2", style: { color: "#9FB8AC" } }, r.udiseCode || "\u2014"),
+                        catConfig.hasGender && /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.gender === "boys" ? "Boys" : "Girls"),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.label),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.indent === null || r.indent === void 0 ? "\u2014" : r.indent),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.udiseIndent === null || r.udiseIndent === void 0 ? "\u2014" : r.udiseIndent),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.increase > 0 ? "#E8C468" : "#9FB8AC" } }, r.increase === null || r.increase === void 0 ? "\u2014" : r.increase),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#F2EFE6" } }, r.received),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: r.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, r.surplus),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.need > 0 ? "#D6725C" : "#9FB8AC" } }, r.need),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.stockAvailable),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.suggested > 0 ? "#E8C468" : "#9FB8AC" } }, r.suggested)
+                      )),
+                      /* @__PURE__ */ React.createElement(
+                        "tr",
+                        { key: "sub" + gi, style: { borderTop: "1px solid rgba(232,196,104,0.25)", background: "rgba(232,196,104,0.04)" } },
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans font-semibold", style: { color: "#E8C468" }, colSpan: catConfig.hasGender ? 4 : 3 }, "Subtotal \u2014 " + group.label),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.requirement),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.udiseIndent),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.increase),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.received),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.surplus),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.need),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.stockAvailable),
+                        /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, group.subtotal.suggested)
+                      )
+                    ])
+                  : filtered.map((r, i) => /* @__PURE__ */ React.createElement(
+                "tr",
+                { key: i, style: { borderTop: "1px solid rgba(242,239,230,0.06)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } },
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.schoolName),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2", style: { color: "#9FB8AC" } }, r.udiseCode || "\u2014"),
+                catConfig.hasGender && /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.gender === "boys" ? "Boys" : "Girls"),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans", style: { color: "#F2EFE6" } }, r.label),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.indent === null || r.indent === void 0 ? "\u2014" : r.indent),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.udiseIndent === null || r.udiseIndent === void 0 ? "\u2014" : r.udiseIndent),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.increase > 0 ? "#E8C468" : "#9FB8AC" } }, r.increase === null || r.increase === void 0 ? "\u2014" : r.increase),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#F2EFE6" } }, r.received),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: r.surplus > 0 ? "#8FBF9F" : "#9FB8AC" } }, r.surplus),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.need > 0 ? "#D6725C" : "#9FB8AC" } }, r.need),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right", style: { color: "#9FB8AC" } }, r.stockAvailable),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: r.suggested > 0 ? "#E8C468" : "#9FB8AC" } }, r.suggested)
+                    ))
               ),
               /* @__PURE__ */ React.createElement(
                 "tfoot",
@@ -3814,17 +3973,306 @@ function ReportsModule({ records, mrcStock }) {
                 /* @__PURE__ */ React.createElement(
                   "tr",
                   { style: { borderTop: "1px solid rgba(242,239,230,0.15)", background: "rgba(232,196,104,0.06)" } },
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans font-semibold", style: { color: "#E8C468" }, colSpan: catConfig.hasGender ? 5 : 4 }, "Total"),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 font-sans font-semibold", style: { color: "#E8C468" }, colSpan: catConfig.hasGender ? 4 : 3 }, "Total"),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.requirement),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.udiseIndent),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.increase),
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.received),
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.surplus),
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.need),
-                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2" }),
+                  /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, stockTotal),
                   /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2 text-right font-semibold", style: { color: "#E8C468" } }, totals.suggested)
                 )
               )
             )
           )
         )
+  );
+}
+function normalizeHeaderKey(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+function findColumnKey(headerKeys, candidates) {
+  const wanted = candidates.map(normalizeHeaderKey);
+  return headerKeys.find((h) => wanted.includes(normalizeHeaderKey(h)));
+}
+async function importEnrollmentFile(file, mode, records, setRecords, cloudStatus, setToast, setBusy) {
+  if (!file) return;
+  if (typeof XLSX === "undefined") {
+    setToast({ type: "error", msg: "Excel library is still loading \u2014 please try again in a moment." });
+    return;
+  }
+  if (cloudStatus !== "connected") {
+    setToast({ type: "error", msg: "Not connected to the shared Google Sheet \u2014 can't import right now." });
+    return;
+  }
+  setBusy(true);
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    if (!rows.length) {
+      setToast({ type: "error", msg: "That file has no data rows." });
+      setBusy(false);
+      return;
+    }
+    const headerKeys = Object.keys(rows[0]);
+    const udiseKey = findColumnKey(headerKeys, ["udise code", "udise", "udise code number", "school udise code"]);
+    const schoolKey = findColumnKey(headerKeys, ["school name", "school"]);
+    if (!udiseKey) {
+      setToast({ type: "error", msg: "Couldn't find a \"UDISE Code\" column in that file." });
+      setBusy(false);
+      return;
+    }
+    const classKeyMap = {};
+    CLASSES.forEach((c) => {
+      classKeyMap[c] = {
+        boy: findColumnKey(headerKeys, ["class " + c + " boys", "c" + c + " boys", "boys class " + c]),
+        girl: findColumnKey(headerKeys, ["class " + c + " girls", "c" + c + " girls", "girls class " + c])
+      };
+    });
+    let updated = 0, skipped = 0;
+    const byUdise = new Map(records.map((r) => [String(r.udiseCode || "").trim(), r]));
+    const changes = [];
+    for (const row of rows) {
+      const udiseCode = String(row[udiseKey] ?? "").trim();
+      if (!udiseCode) {
+        skipped++;
+        continue;
+      }
+      const schoolName = schoolKey ? String(row[schoolKey] ?? "").trim() : "";
+      const strength = emptyClassMap(CLASSES, { boy: "", girl: "" });
+      CLASSES.forEach((c) => {
+        const ck = classKeyMap[c];
+        const bv = ck.boy ? row[ck.boy] : "";
+        const gv = ck.girl ? row[ck.girl] : "";
+        strength["c" + c] = {
+          boy: bv === "" || bv === null || bv === void 0 ? "" : String(Math.max(0, Math.round(Number(bv) || 0))),
+          girl: gv === "" || gv === null || gv === void 0 ? "" : String(Math.max(0, Math.round(Number(gv) || 0)))
+        };
+      });
+      const existing = byUdise.get(udiseCode);
+      const base = existing ? structuredClone(existing) : { ...emptyForm(), id: uid(), udiseCode, schoolName: schoolName || "(Unnamed school)" };
+      base[mode] = strength;
+      if (schoolName) base.schoolName = schoolName;
+      base.udiseCode = udiseCode;
+      base.submittedAt = Date.now();
+      changes.push(base);
+      byUdise.set(udiseCode, base);
+      updated++;
+    }
+    for (const rec of changes) {
+      await sheetsDB.set("kit:" + rec.udiseCode, JSON.stringify(rec));
+    }
+    setRecords((rs) => {
+      const map = new Map(rs.map((r) => [String(r.udiseCode || "").trim(), r]));
+      changes.forEach((c) => map.set(c.udiseCode, c));
+      return Array.from(map.values()).sort((a, b) => a.schoolName.localeCompare(b.schoolName));
+    });
+    setToast({
+      type: "success",
+      msg: `Updated ${updated} school${updated === 1 ? "" : "s"}` + (skipped ? `, skipped ${skipped} row(s) with no UDISE code` : "") + "."
+    });
+  } catch (err) {
+    console.error("Enrollment import failed:", err);
+    setToast({ type: "error", msg: "Import failed: " + (err && err.message ? err.message : "unknown error") });
+  }
+  setBusy(false);
+}
+function exportEnrollmentData(mode, records) {
+  if (typeof XLSX === "undefined") return;
+  const rows = records
+    .slice()
+    .sort((a, b) => a.schoolName.localeCompare(b.schoolName))
+    .map((r) => {
+      const s = r[mode] || emptyClassMap(CLASSES, { boy: "", girl: "" });
+      const row = { "UDISE Code": r.udiseCode || "", "School Name": r.schoolName || "" };
+      CLASSES.forEach((c) => {
+        row["Class " + c + " Boys"] = n(s["c" + c] && s["c" + c].boy);
+        row["Class " + c + " Girls"] = n(s["c" + c] && s["c" + c].girl);
+      });
+      return row;
+    });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Note: "No school records yet" }]);
+  XLSX.utils.book_append_sheet(wb, ws, (mode === "strength" ? "UDISE Enrollment" : "Physical Roll").slice(0, 31));
+  const stamp = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  XLSX.writeFile(wb, (mode === "strength" ? "udise-enrollment" : "physical-roll") + "-" + stamp + ".xlsx");
+}
+function EnrollmentModule({ records, setRecords, cloudStatus, setToast }) {
+  const [subTab, setSubTab] = useState("udise");
+  const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
+  const fileInputRef = useRef(null);
+  const mode = subTab === "udise" ? "strength" : "physicalStrength";
+  const label = subTab === "udise" ? "UDISE Enrollment" : "Physical Roll";
+  function onPickFile() {
+    if (fileInputRef.current) fileInputRef.current.click();
+  }
+  function onFileChange(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (file) importEnrollmentFile(file, mode, records, setRecords, cloudStatus, setToast, setBusy);
+  }
+  const q = search.trim().toLowerCase();
+  const rows = useMemo(() => {
+    let list = records;
+    if (q) list = list.filter((r) => r.schoolName.toLowerCase().includes(q) || String(r.udiseCode || "").toLowerCase().includes(q));
+    return list
+      .slice()
+      .sort((a, b) => a.schoolName.localeCompare(b.schoolName))
+      .map((r) => {
+        const s = r[mode] || emptyClassMap(CLASSES, { boy: "", girl: "" });
+        const byClass = {};
+        CLASSES.forEach((c) => {
+          byClass["c" + c] = { boy: n(s["c" + c] && s["c" + c].boy), girl: n(s["c" + c] && s["c" + c].girl) };
+        });
+        return { r, totals: strengthTotals(s), byClass };
+      });
+  }, [records, q, mode]);
+  const grand = rows.reduce(
+    (acc, x) => {
+      CLASSES.forEach((c) => {
+        acc.byClass["c" + c].boy += x.byClass["c" + c].boy;
+        acc.byClass["c" + c].girl += x.byClass["c" + c].girl;
+      });
+      return { boys: acc.boys + x.totals.boys, girls: acc.girls + x.totals.girls, total: acc.total + x.totals.total, byClass: acc.byClass };
+    },
+    { boys: 0, girls: 0, total: 0, byClass: CLASSES.reduce((o, c) => ({ ...o, ["c" + c]: { boy: 0, girl: 0 } }), {}) }
+  );
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    null,
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "flex gap-1 mb-6 border-b overflow-x-auto", style: { borderColor: "rgba(242,239,230,0.15)" } },
+      [{ key: "udise", label: "UDISE Enrollment" }, { key: "physical", label: "Physical Roll" }].map(
+        (t) => /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            key: t.key,
+            onClick: () => setSubTab(t.key),
+            className: "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+            style: subTab === t.key ? { borderColor: "#E8C468", color: "#E8C468" } : { borderColor: "transparent", color: "#9FB8AC" }
+          },
+          t.label
+        )
+      )
+    ),
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl mb-6 p-5", style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement("p", { className: "font-chalk text-lg mb-1", style: { color: "#F2EFE6" } }, label),
+      /* @__PURE__ */ React.createElement(
+        "p",
+        { className: "text-xs mb-4", style: { color: "#9FB8AC" } },
+        "Upload an Excel/CSV file any time to bulk-update " + (subTab === "udise" ? "UDISE-based" : "physically counted") + " enrollment for every school \u2014 school-wise, class-wise and gender-wise. Re-upload whenever the roll changes; existing schools are updated and new ones are added automatically."
+      ),
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "flex flex-wrap gap-3" },
+        /* @__PURE__ */ React.createElement("input", { ref: fileInputRef, type: "file", accept: ".xlsx,.xls,.csv", style: { display: "none" }, onChange: onFileChange }),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: onPickFile,
+            disabled: busy || cloudStatus !== "connected",
+            className: "px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2",
+            style: { background: "#E8C468", color: "#1B2E28", opacity: busy || cloudStatus !== "connected" ? 0.6 : 1 }
+          },
+          busy ? /* @__PURE__ */ React.createElement(Loader2, { size: 15, className: "animate-spin" }) : /* @__PURE__ */ React.createElement(Upload, { size: 15 }),
+          busy ? "Importing..." : "Import " + label
+        ),
+        /* @__PURE__ */ React.createElement(
+          "button",
+          {
+            onClick: () => exportEnrollmentData(mode, records),
+            disabled: records.length === 0,
+            className: "px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2",
+            style: { background: "rgba(242,239,230,0.08)", color: "#F2EFE6", opacity: records.length === 0 ? 0.5 : 1 }
+          },
+          /* @__PURE__ */ React.createElement(Download, { size: 15 }),
+          "Download current data (Excel)"
+        )
+      ),
+      cloudStatus !== "connected" && /* @__PURE__ */ React.createElement("p", { className: "text-xs mt-3", style: { color: "#D6725C" } }, "Connect to the shared Google Sheet to import."),
+      /* @__PURE__ */ React.createElement(
+        "p",
+        { className: "text-xs mt-3", style: { color: "#9FB8AC" } },
+        "Expected columns: UDISE Code, School Name, then Class 1 Boys / Class 1 Girls \u2026 Class 10 Boys / Class 10 Girls. Use \u201CDownload current data\u201D first to get the exact template with every school already listed."
+      )
+    ),
+    /* @__PURE__ */ React.createElement("input", {
+      value: search,
+      onChange: (e) => setSearch(e.target.value),
+      placeholder: "Search school name or UDISE code...",
+      className: "w-full input px-4 py-2.5 rounded-xl text-sm mb-4",
+      style: { background: "#223B33", border: "1px solid rgba(242,239,230,0.15)", color: "#F2EFE6" }
+    }),
+    records.length === 0 ? /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl py-16 text-center", style: { background: "#223B33", border: "1px dashed rgba(242,239,230,0.2)" } },
+      /* @__PURE__ */ React.createElement(AlertCircle, { size: 22, className: "mx-auto mb-2", style: { color: "#9FB8AC" } }),
+      /* @__PURE__ */ React.createElement("p", { style: { color: "#9FB8AC" } }, "No school records yet.")
+    ) : /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "rounded-2xl overflow-hidden", style: { border: "1px solid rgba(242,239,230,0.1)" } },
+      /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "overflow-x-auto" },
+        /* @__PURE__ */ React.createElement(
+          "table",
+          { className: "w-full text-sm font-mono" },
+          /* @__PURE__ */ React.createElement(
+            "thead",
+            null,
+            /* @__PURE__ */ React.createElement(
+              "tr",
+              { style: { background: "rgba(242,239,230,0.06)" } },
+              ["School", "UDISE", ...CLASSES.flatMap((c) => ["C" + c + "B", "C" + c + "G"]), "Boys", "Girls", "Total"].map(
+                (h) => /* @__PURE__ */ React.createElement("th", { key: h, className: "text-left px-3 py-3 font-medium whitespace-nowrap", style: { color: "#9FB8AC" } }, h)
+              )
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "tbody",
+            null,
+            rows.map(
+              ({ r, totals, byClass }, i) => /* @__PURE__ */ React.createElement(
+                "tr",
+                { key: r.id || r.udiseCode, style: { borderTop: "1px solid rgba(242,239,230,0.06)", background: i % 2 ? "rgba(242,239,230,0.02)" : "transparent" } },
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-sans whitespace-nowrap", style: { color: "#F2EFE6" } }, r.schoolName),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 whitespace-nowrap", style: { color: "#9FB8AC" } }, r.udiseCode || "\u2014"),
+                ...CLASSES.flatMap((c) => [
+                  /* @__PURE__ */ React.createElement("td", { key: "c" + c + "b", className: "px-3 py-2.5", style: { color: "#F2EFE6" } }, byClass["c" + c].boy),
+                  /* @__PURE__ */ React.createElement("td", { key: "c" + c + "g", className: "px-3 py-2.5", style: { color: "#F2EFE6" } }, byClass["c" + c].girl)
+                ]),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-semibold", style: { color: "#F2EFE6" } }, totals.boys),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-semibold", style: { color: "#F2EFE6" } }, totals.girls),
+                /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-semibold", style: { color: "#E8C468" } }, totals.total)
+              )
+            )
+          ),
+          /* @__PURE__ */ React.createElement(
+            "tfoot",
+            null,
+            /* @__PURE__ */ React.createElement(
+              "tr",
+              { style: { borderTop: "1px solid rgba(242,239,230,0.15)", background: "rgba(232,196,104,0.06)" } },
+              /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-sans font-semibold", colSpan: 2, style: { color: "#E8C468" } }, "Total"),
+              ...CLASSES.flatMap((c) => [
+                /* @__PURE__ */ React.createElement("td", { key: "tc" + c + "b", className: "px-3 py-2.5 font-semibold", style: { color: "#E8C468" } }, grand.byClass["c" + c].boy),
+                /* @__PURE__ */ React.createElement("td", { key: "tc" + c + "g", className: "px-3 py-2.5 font-semibold", style: { color: "#E8C468" } }, grand.byClass["c" + c].girl)
+              ]),
+              /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-semibold", style: { color: "#E8C468" } }, grand.boys),
+              /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-semibold", style: { color: "#E8C468" } }, grand.girls),
+              /* @__PURE__ */ React.createElement("td", { className: "px-3 py-2.5 font-semibold", style: { color: "#E8C468" } }, grand.total)
+            )
+          )
+        )
+      )
+    )
   );
 }
 const DISTRIBUTION_CATEGORIES = [
@@ -3842,6 +4290,35 @@ const DISTRIBUTION_METRICS = [
   { id: "suggested", label: "Suggested Now", accent: "#E8C468" },
   { id: "surplus", label: "Surplus (Mismatch)", accent: "#7EA8D8" }
 ];
+function roundRobinAllocate(items, stock) {
+  const alloc = {};
+  items.forEach((it) => {
+    alloc[it.id] = 0;
+  });
+  const active = items.filter((it) => it.need > 0).map((it) => ({ id: it.id, left: it.need }));
+  let remaining = stock;
+  while (remaining > 0) {
+    const live = active.filter((it) => it.left > 0);
+    if (live.length === 0) break;
+    const share = Math.floor(remaining / live.length);
+    if (share === 0) {
+      for (const it of live) {
+        if (remaining <= 0) break;
+        alloc[it.id] += 1;
+        it.left -= 1;
+        remaining -= 1;
+      }
+      break;
+    }
+    for (const it of live) {
+      const give = Math.min(it.left, share);
+      alloc[it.id] += give;
+      it.left -= give;
+      remaining -= give;
+    }
+  }
+  return alloc;
+}
 function computeDistributionPivot(catConfig, records, mrcStock, genderFilter) {
   const allSlots = catConfig.buildSlots();
   const slots = catConfig.hasGender && genderFilter !== "both" ? allSlots.filter((s) => s.gender === genderFilter) : allSlots;
@@ -3857,18 +4334,13 @@ function computeDistributionPivot(catConfig, records, mrcStock, genderFilter) {
       distributed += received;
       const indent = slot.getIndent(r);
       const need = bagsRequirement(indent, received);
-      items.push({ id: r.id, need });
+      const enrollment = strengthTotals(r.physicalStrength || r.strength).total;
+      items.push({ id: r.id, need, enrollment });
     });
     const stockAvailable = Math.max(totalStock - distributed, 0);
     slotStock[slot.id] = stockAvailable;
-    let remaining = stockAvailable;
-    const allocMap = {};
-    [...items].filter((it) => it.need > 0).sort((a, b) => b.need - a.need).forEach((it) => {
-      const give = Math.min(it.need, remaining);
-      allocMap[it.id] = give;
-      remaining -= give;
-    });
-    allocMaps[slot.id] = allocMap;
+    const orderedItems = [...items].sort((a, b) => a.enrollment - b.enrollment);
+    allocMaps[slot.id] = roundRobinAllocate(orderedItems, stockAvailable);
   });
   const schoolRows = records.map((r) => {
     let hasAny = false;
@@ -3959,7 +4431,7 @@ function DistributionModule({ records, mrcStock }) {
       /* @__PURE__ */ React.createElement(
         "p",
         { className: "text-xs mb-4", style: { color: "#9FB8AC" } },
-        "School-wise, item-wise distribution sheet built from enrolled physical strength and the Mandal Stock Register \u2014 total stock at MRC. Sizes/categories run across the top as columns, one row per school."
+        "School-wise, item-wise distribution sheet built from Physical Roll enrollment and the Mandal Stock Register. When stock falls short of total need, it's spread thin across every school still needing it \u2014 smallest-enrollment schools get first priority in each round \u2014 rather than fully serving a few schools and leaving others with zero. \u201CStill Needed\u201D shows the shortfall wherever stock can't fully cover a school."
       ),
       /* @__PURE__ */ React.createElement(
         "div",
